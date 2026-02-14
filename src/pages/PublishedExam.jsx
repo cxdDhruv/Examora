@@ -94,7 +94,8 @@ export default function PublishedExam() {
         )
     }
 
-    const joinUrl = `${window.location.origin}/join/${exam.code}`
+    const basePath = import.meta.env.BASE_URL || '/'
+    const joinUrl = `${window.location.origin}${basePath}#/join/${exam.code}`
 
     const copyLink = () => {
         navigator.clipboard.writeText(joinUrl)
