@@ -9,12 +9,7 @@ import {
 } from 'lucide-react'
 import './TakeExam.css'
 
-const fallbackQuestions = [
-    { id: 1, type: 'MCQ', text: "What is Newton's Second Law of Motion?", options: ['F = ma', 'F = mv', 'E = mc²', 'v = at'], points: 2 },
-    { id: 2, type: 'True/False', text: 'Acceleration is a vector quantity.', options: ['True', 'False'], points: 1 },
-    { id: 3, type: 'MCQ', text: 'A 5kg object accelerates at 3 m/s²?', options: ['15 N', '8 N', '1.67 N', '2 N'], points: 3 },
-    { id: 4, type: 'Short Answer', text: 'Explain relationship between mass, force, and acceleration.', options: null, points: 5 },
-]
+const fallbackQuestions = []
 
 export default function TakeExam() {
     const { id } = useParams()
@@ -25,7 +20,19 @@ export default function TakeExam() {
     const streamRef = useRef(null)
     const audioCtxRef = useRef(null)
 
-    const exam = getExamById(id)
+    // Try context first, then sessionStorage (set by JoinExam from URL-embedded data)
+    const contextExam = getExamById(id)
+    const sessionExam = (() => {
+        try {
+            const stored = sessionStorage.getItem('current_exam')
+            if (stored) {
+                const parsed = JSON.parse(stored)
+                if (parsed.id === id) return parsed
+            }
+        } catch { }
+        return null
+    })()
+    const exam = contextExam || sessionExam
     const examQuestions = exam?.questions || fallbackQuestions
     const examTitle = exam?.title || 'Practice Exam'
     const examDuration = exam?.duration || 90

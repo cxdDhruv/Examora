@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useExam } from '../context/ExamContext'
 import {
@@ -9,6 +9,7 @@ import {
 export default function JoinExam() {
     const { code: urlCode } = useParams()
     const navigate = useNavigate()
+    const location = useLocation()
     const { getExamByCode } = useExam()
 
     const [code, setCode] = useState(urlCode || '')
@@ -19,9 +20,35 @@ export default function JoinExam() {
     const [section, setSection] = useState('')
     const [batch, setBatch] = useState('')
     const [branch, setBranch] = useState('')
-    const [step, setStep] = useState(urlCode ? 'info' : 'code') // code, info, ready
 
-    const exam = code ? getExamByCode(code.toUpperCase()) : null
+    // Decode exam data from URL if present (encoded by teacher's PublishedExam page)
+    const urlExamData = useMemo(() => {
+        try {
+            // Hash looks like: #/join/CODE?d=BASE64DATA
+            const hashPart = location.search || ''
+            const params = new URLSearchParams(hashPart)
+            const d = params.get('d')
+            if (d) {
+                const decoded = decodeURIComponent(escape(atob(d)))
+                return JSON.parse(decoded)
+            }
+        } catch (e) {
+            console.warn('Could not decode exam from URL:', e)
+        }
+        return null
+    }, [location.search])
+
+    // Try context first, then URL-embedded data
+    const exam = useMemo(() => {
+        if (code) {
+            const fromContext = getExamByCode(code.toUpperCase())
+            if (fromContext) return fromContext
+        }
+        if (urlExamData) return urlExamData
+        return null
+    }, [code, urlExamData, getExamByCode])
+
+    const [step, setStep] = useState((urlCode && (urlExamData || getExamByCode(urlCode?.toUpperCase()))) ? 'info' : (urlCode ? 'info' : 'code'))
 
     const handleCodeSubmit = (e) => {
         e.preventDefault()
@@ -31,7 +58,7 @@ export default function JoinExam() {
         }
         const found = getExamByCode(code.toUpperCase())
         if (!found) {
-            setError('Invalid exam code. Please check and try again.')
+            setError('Invalid exam code. Please use the full link shared by your teacher.')
             return
         }
         if (found.status !== 'Published') {
@@ -53,9 +80,8 @@ export default function JoinExam() {
     }
 
     const startExam = () => {
-        const exam = getExamByCode(code.toUpperCase())
         if (exam) {
-            // Store student info in sessionStorage for the exam
+            // Store student info for the exam
             sessionStorage.setItem('exam_student', JSON.stringify({
                 name: studentName,
                 email: studentEmail,
@@ -64,6 +90,8 @@ export default function JoinExam() {
                 batch,
                 branch
             }))
+            // Store exam data in sessionStorage so TakeExam can access it
+            sessionStorage.setItem('current_exam', JSON.stringify(exam))
             navigate(`/student/exam/${exam.id}`)
         }
     }
@@ -97,7 +125,7 @@ export default function JoinExam() {
                     }}>
                         E
                     </div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 4 }}>ExamAI</h1>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 4 }}>Examora</h1>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Join your exam securely</p>
                 </div>
 
@@ -117,7 +145,7 @@ export default function JoinExam() {
                         <form onSubmit={handleCodeSubmit}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 4 }}>Enter Exam Code</h3>
                             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 20 }}>
-                                Enter the 6-character code from your teacher or scan the QR code
+                                Enter the 6-character code from your teacher or use the full link
                             </p>
                             <div className="input-group" style={{ marginBottom: 20 }}>
                                 <label><KeyRound size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} /> Exam Code</label>
@@ -192,6 +220,19 @@ export default function JoinExam() {
                         </form>
                     )}
 
+                    {step === 'info' && !exam && (
+                        <div style={{ textAlign: 'center', padding: 20 }}>
+                            <AlertCircle size={40} color="var(--warning-400)" style={{ marginBottom: 12 }} />
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8 }}>Exam Not Found</h3>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
+                                This exam link may have expired or is invalid. Ask your teacher for a new link.
+                            </p>
+                            <button className="btn btn-secondary" onClick={() => { setStep('code'); setCode('') }}>
+                                Try Another Code
+                            </button>
+                        </div>
+                    )}
+
                     {step === 'ready' && exam && (
                         <div style={{ textAlign: 'center' }}>
                             <Shield size={48} color="var(--primary-400)" style={{ marginBottom: 16 }} />
@@ -230,8 +271,8 @@ export default function JoinExam() {
                 </div>
 
                 <div style={{ textAlign: 'center', marginTop: 20 }}>
-                    <a href="/" style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textDecoration: 'none' }}>
-                        Powered by ExamAI
+                    <a href="#/" style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textDecoration: 'none' }}>
+                        Powered by Examora
                     </a>
                 </div>
             </motion.div>

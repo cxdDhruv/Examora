@@ -94,8 +94,19 @@ export default function PublishedExam() {
         )
     }
 
+    // Encode exam data into the URL so students on any device can take the exam
+    const examPayload = {
+        id: exam.id,
+        title: exam.title,
+        code: exam.code,
+        questions: exam.questions,
+        duration: exam.duration,
+        totalPoints: exam.totalPoints,
+        settings: exam.settings,
+    }
+    const encodedExam = btoa(unescape(encodeURIComponent(JSON.stringify(examPayload))))
     const basePath = import.meta.env.BASE_URL || '/'
-    const joinUrl = `${window.location.origin}${basePath}#/join/${exam.code}`
+    const joinUrl = `${window.location.origin}${basePath}#/join/${exam.code}?d=${encodedExam}`
 
     const copyLink = () => {
         navigator.clipboard.writeText(joinUrl)
