@@ -248,18 +248,25 @@
     }
 
 
-    /* === FORCE SIGN IN BUTTON TEXT COLOR === */
-    /* High specificity overrides for all states */
-    .navbar .nav-links a.btn.btn-primary,
-    .navbar .nav-links .btn.btn-primary {
-        color: #ffffff !important;
-        text-decoration: none !important;
-        -webkit-text-fill-color: #ffffff !important;
+    .notification-btn,
+    .logout-btn {
+        width: 34px;
+        height: 34px;
     }
+}
 
-    /* Maintain purple text ONLY for transparent navbar state */
-    .navbar.landing:not(.scrolled) .nav-links a.btn.btn-primary,
-    .navbar.landing:not(.scrolled) .nav-links .btn.btn-primary {
-        color: var(--primary-500) !important;
-        -webkit-text-fill-color: var(--primary-500) !important;
-    }
+/* === FORCE SIGN IN BUTTON TEXT COLOR === */
+/* High specificity overrides for all states */
+.navbar .nav-links a.btn.btn-primary,
+.navbar .nav-links .btn.btn-primary {
+    color: #ffffff !important;
+    text-decoration: none !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Maintain purple text ONLY for transparent navbar state */
+.navbar.landing:not(.scrolled) .nav-links a.btn.btn-primary,
+.navbar.landing:not(.scrolled) .nav-links .btn.btn-primary {
+    color: var(--primary-500) !important;
+    -webkit-text-fill-color: var(--primary-500) !important;
+}
