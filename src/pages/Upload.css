@@ -1,0 +1,332 @@
+/* === Upload Page — Google Forms Style === */
+.upload-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    border: 2px dashed var(--border-medium);
+    cursor: pointer;
+    text-align: center;
+    transition: all var(--transition-base);
+    background: white;
+    border-radius: var(--radius-lg);
+}
+
+.upload-zone:hover {
+    border-color: var(--primary-500);
+    background: var(--primary-50);
+}
+
+.upload-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--primary-50);
+    color: var(--primary-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.upload-zone h3 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.upload-zone>p {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.upload-formats {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.upload-formats span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #fafafa;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Processing */
+.processing-card {
+    padding: 32px;
+    max-width: 600px;
+    margin: 0 auto;
+    background: white;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.processing-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.processing-header h3 {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.processing-header p {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.spin {
+    animation: spin 1.5s linear infinite;
+    color: var(--primary-500);
+}
+
+/* Pipeline Steps */
+.processing-pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.pipeline-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: color var(--transition-fast);
+}
+
+.pipeline-step.active {
+    color: var(--primary-500);
+}
+
+.pipeline-step.done {
+    color: var(--success-500);
+}
+
+.step-indicator {
+    width: 24px;
+    display: flex;
+    justify-content: center;
+}
+
+.step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e0e0e0;
+}
+
+.pipeline-step.active .step-dot {
+    background: var(--primary-500);
+    box-shadow: 0 0 6px rgba(103, 58, 183, 0.3);
+}
+
+/* Generated Questions */
+.gen-success {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    flex-wrap: wrap;
+    background: white;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+}
+
+.gen-success-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--primary-50);
+    color: var(--primary-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.gen-success h3 {
+    font-size: 1.05rem;
+    font-weight: 500;
+}
+
+.gen-success p {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.gen-success-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* Difficulty Distribution */
+.diff-dist {
+    padding: 20px 24px;
+}
+
+.diff-dist h4 {
+    font-size: 0.92rem;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+.diff-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.diff-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.diff-bar span:first-child {
+    width: 60px;
+    font-weight: 500;
+}
+
+.diff-bar .progress-bar {
+    flex: 1;
+}
+
+/* Questions List */
+.questions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.question-card {
+    padding: 20px 24px;
+    background: white;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+}
+
+.q-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.q-num {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--primary-500);
+}
+
+.bloom-tag {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: #f5f5f5;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-subtle);
+}
+
+.q-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.q-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.q-opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #fafafa;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.q-opt.correct {
+    background: #e8f5e9;
+    border-color: #c8e6c9;
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.opt-letter {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.q-opt.correct .opt-letter {
+    background: #c8e6c9;
+}
+
+.q-answer {
+    padding: 10px 14px;
+    background: var(--primary-50);
+    border: 1px solid rgba(103, 58, 183, 0.15);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .upload-zone {
+        padding: 40px 20px;
+    }
+
+    .gen-success {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .gen-success-actions {
+        margin-left: 0;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .q-options {
+        grid-template-columns: 1fr;
+    }
+
+    .processing-card {
+        padding: 20px;
+    }
+}

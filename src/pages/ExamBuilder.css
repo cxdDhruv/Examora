@@ -1,0 +1,167 @@
+/* === Exam Builder — Google Forms Style === */
+.settings-panel {
+    padding: 24px;
+}
+
+.settings-panel h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.toggle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #fafafa;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    transition: background var(--transition-fast);
+}
+
+.toggle-item:hover {
+    background: #f0f0f0;
+}
+
+.toggle-item .toggle {
+    margin-left: auto;
+}
+
+/* Question Cards */
+.builder-questions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.builder-q {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    background: white;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+}
+
+.bq-drag {
+    color: var(--text-muted);
+    cursor: grab;
+    padding-top: 2px;
+    flex-shrink: 0;
+}
+
+.bq-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.bq-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.bq-points {
+    font-size: 0.78rem;
+    color: var(--primary-500);
+    font-weight: 600;
+}
+
+.bq-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.bq-text {
+    font-size: 0.92rem;
+    font-weight: 500;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.bq-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.bq-opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: #fafafa;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.bq-opt.correct {
+    background: #e8f5e9;
+    border-color: #c8e6c9;
+    color: #2e7d32;
+}
+
+/* Add Question Button */
+.add-question-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    margin-top: 12px;
+    border: 2px dashed var(--border-medium);
+    border-radius: var(--radius-lg);
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    width: 100%;
+    background: white;
+}
+
+.add-question-btn:hover {
+    border-color: var(--primary-500);
+    color: var(--primary-500);
+    background: var(--primary-50);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .bq-options {
+        grid-template-columns: 1fr;
+    }
+
+    .builder-q {
+        padding: 14px;
+    }
+
+    .bq-drag {
+        display: none;
+    }
+}

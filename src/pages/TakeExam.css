@@ -1,0 +1,461 @@
+/* === Exam Taking Interface — Google Forms Style === */
+.exam-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+}
+
+.exam-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 56px;
+    background: var(--primary-500);
+    color: white;
+    flex-wrap: wrap;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.exam-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    font-size: 0.92rem;
+    color: white;
+}
+
+.exam-timer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: white;
+}
+
+.exam-indicators {
+    display: flex;
+    gap: 8px;
+}
+
+.indicator {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.indicator.good {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.indicator.warn {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffe082;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.indicator.bad {
+    background: rgba(244, 67, 54, 0.2);
+    color: #ffcdd2;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+/* Body */
+.exam-body {
+    display: flex;
+    flex: 1;
+}
+
+/* Nav Sidebar */
+.exam-nav {
+    width: 220px;
+    padding: 20px;
+    border-right: 1px solid var(--border-subtle);
+    background: white;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+}
+
+.exam-nav h4 {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.nav-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.nav-btn {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: white;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.nav-btn:hover {
+    border-color: var(--border-medium);
+    background: #fafafa;
+}
+
+.nav-btn.current {
+    background: var(--primary-500);
+    border-color: var(--primary-500);
+    color: white;
+}
+
+.nav-btn.answered {
+    background: #e8f5e9;
+    border-color: #c8e6c9;
+    color: #2e7d32;
+}
+
+.nav-btn.flagged {
+    background: #fff3e0;
+    border-color: #ffe0b2;
+    color: #e65100;
+}
+
+.nav-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.nav-legend span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border-subtle);
+}
+
+.dot.answered {
+    background: #c8e6c9;
+    border-color: #a5d6a7;
+}
+
+.dot.current {
+    background: var(--primary-500);
+    border-color: var(--primary-400);
+}
+
+.dot.flagged {
+    background: #ffe0b2;
+    border-color: #ffcc80;
+}
+
+.dot.unanswered {
+    background: white;
+}
+
+.exam-progress {
+    margin-top: auto;
+}
+
+/* Question Panel — Google Forms Card Style */
+.question-panel {
+    flex: 1;
+    padding: 32px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.qp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.qp-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.flag-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-subtle);
+    background: white;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.flag-btn:hover {
+    border-color: #ffa726;
+    color: #e65100;
+}
+
+.flag-btn.active {
+    background: #fff3e0;
+    border-color: #ffa726;
+    color: #e65100;
+}
+
+.qp-text {
+    font-size: 1.1rem;
+    font-weight: 400;
+    line-height: 1.7;
+    margin-bottom: 28px;
+    color: var(--text-primary);
+}
+
+/* Options — Google Forms Radio Style */
+.qp-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 32px;
+}
+
+.qp-opt {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: white;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    text-align: left;
+    width: 100%;
+}
+
+.qp-opt:hover {
+    background: #fafafa;
+    border-color: var(--border-medium);
+}
+
+.qp-opt.selected {
+    background: var(--primary-50);
+    border-color: var(--primary-500);
+    color: var(--text-primary);
+}
+
+.qp-opt.selected .opt-letter {
+    background: var(--primary-500);
+    color: white;
+}
+
+.opt-letter {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f5;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    border: 1px solid var(--border-subtle);
+}
+
+.qp-textarea {
+    min-height: 150px;
+    margin-bottom: 32px;
+    resize: vertical;
+}
+
+.qp-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Warning */
+.warning-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    animation: fadeIn 0.2s ease;
+}
+
+.warning-card {
+    background: white;
+    border: 2px solid #ffa726;
+    border-radius: var(--radius-xl);
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+    box-shadow: var(--shadow-lg);
+    animation: fadeInUp 0.3s ease;
+}
+
+.warning-card h3 {
+    font-size: 1.2rem;
+    margin: 16px 0 8px;
+    color: #e65100;
+}
+
+.warning-card p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Submitted */
+.exam-submitted {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: var(--bg-primary);
+}
+
+.submitted-card {
+    text-align: center;
+    padding: 60px 40px;
+    max-width: 500px;
+    background: white;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+}
+
+.submitted-card h2 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 20px 0 10px;
+}
+
+.submitted-card>p {
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+}
+
+.submitted-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 32px;
+}
+
+.submitted-stats>div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.submitted-stats strong {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-500);
+}
+
+.submitted-stats span {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .exam-topbar {
+        height: auto;
+        padding: 10px 12px;
+    }
+
+    .exam-title span {
+        display: none;
+    }
+
+    .exam-nav {
+        display: none;
+    }
+
+    .question-panel {
+        padding: 20px 16px;
+    }
+
+    .qp-text {
+        font-size: 1rem;
+    }
+
+    .qp-opt {
+        padding: 12px 16px;
+        font-size: 0.88rem;
+    }
+
+    .indicator span:not(:first-child) {
+        display: none;
+    }
+
+    .exam-timer {
+        font-size: 1rem;
+    }
+
+    .qp-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 12px 16px;
+        background: white;
+        border-top: 1px solid var(--border-subtle);
+        box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.06);
+        z-index: 40;
+    }
+
+    .submitted-card {
+        padding: 40px 24px;
+    }
+
+    .submitted-stats {
+        gap: 20px;
+    }
+}
