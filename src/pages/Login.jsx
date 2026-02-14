@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode'
 import { useAuth } from '../context/AuthContext'
 import { Brain, ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
+import logo from '../assets/logo.png'
 import './Auth.css'
 
 export default function Login() {
@@ -16,7 +17,7 @@ export default function Login() {
         <div className="auth-page">
             <motion.div className="auth-card glass" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                 <Link to="/" className="auth-brand">
-                    <img src="/logo.png" alt="Examora" className="brand-logo" style={{ height: 40, width: 'auto' }} />
+                    <img src={logo} alt="Examora" className="brand-logo" style={{ height: 40, width: 'auto' }} />
                     <span className="brand-text">Examora</span>
                 </Link>
 

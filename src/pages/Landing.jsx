@@ -5,6 +5,7 @@ import {
     Brain, Shield, BarChart3, FileText, Eye, Upload,
     Zap, Lock, ArrowRight, CheckCircle, Star, ChevronRight
 } from 'lucide-react'
+import logo from '../assets/logo.png'
 import './Landing.css'
 
 const features = [
@@ -164,7 +165,7 @@ export default function Landing() {
                 <div className="container footer-inner">
                     <div className="footer-brand">
                         <div className="navbar-brand">
-                            <img src="/logo.png" alt="Examora" className="brand-logo" style={{ height: 24, width: 'auto' }} />
+                            <img src={logo} alt="Examora" className="brand-logo" style={{ height: 24, width: 'auto' }} />
                             <span className="brand-text">Examora</span>
                         </div>
                         <p>AI-Driven Secure Online Examination System</p>

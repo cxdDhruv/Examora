@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Menu, X, Brain, LogOut, Bell } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import './Navbar.css'
+import logo from '../assets/logo.png'
 
 export default function Navbar({ user: propUser }) {
     const [mobileOpen, setMobileOpen] = useState(false)
@@ -34,7 +35,7 @@ export default function Navbar({ user: propUser }) {
         <nav className={`navbar ${scrolled ? 'scrolled' : ''} ${isLanding ? 'landing' : ''}`}>
             <div className="navbar-inner">
                 <Link to="/" className="navbar-brand">
-                    <img src="/logo.png" alt="Examora" className="brand-logo" style={{ height: 28, width: 'auto' }} />
+                    <img src={logo} alt="Examora" className="brand-logo" style={{ height: 28, width: 'auto' }} />
                     <span className="brand-text">Examora</span>
                 </Link>
 
