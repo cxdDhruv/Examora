@@ -20,6 +20,26 @@
     box-shadow: none;
 }
 
+/* Fix contrast on purple hero background */
+.navbar.landing:not(.scrolled) .navbar-brand,
+.navbar.landing:not(.scrolled) .nav-links a,
+.navbar.landing:not(.scrolled) .mobile-toggle {
+    color: #ffffff;
+}
+
+.navbar.landing:not(.scrolled) .nav-links a:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.navbar.landing:not(.scrolled) .btn-primary {
+    background: #ffffff;
+    color: var(--primary-500);
+}
+
+.navbar.landing:not(.scrolled) .btn-primary:hover {
+    background: #f0f0f0;
+}
+
 .navbar-inner {
     max-width: var(--max-width);
     margin: 0 auto;
