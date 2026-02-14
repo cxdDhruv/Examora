@@ -6,6 +6,7 @@ import {
     Zap, Lock, ArrowRight, CheckCircle, Star, ChevronRight
 } from 'lucide-react'
 import logo from '../assets/logo.png'
+import ownerImg from '../assets/owner.png'
 import './Landing.css'
 
 const features = [
@@ -185,6 +186,14 @@ export default function Landing() {
                         </div>
                     </div>
                     <div className="footer-bottom">
+                        <div className="owner-credit">
+                            <img src={ownerImg} alt="Dhruv Jasani" className="owner-img" />
+                            <div className="owner-info">
+                                <span className="owner-name">Dhruv Jasani</span>
+                                <span className="owner-degree">B.Tech Mechatronics</span>
+                                <a href="mailto:jasanidhruv256@gmail.com" className="owner-email">jasanidhruv256@gmail.com</a>
+                            </div>
+                        </div>
                         <span>© 2026 Examora. All rights reserved.</span>
                     </div>
                 </div>
