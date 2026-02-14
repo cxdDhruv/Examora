@@ -6,7 +6,7 @@ import {
     Zap, Lock, ArrowRight, CheckCircle, Star, ChevronRight
 } from 'lucide-react'
 import logo from '../assets/logo.png'
-import ownerImg from '../assets/owner.png'
+import ownerImg from '../assets/owner.JPG'
 import './Landing.css'
 
 const features = [
