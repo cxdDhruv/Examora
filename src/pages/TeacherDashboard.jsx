@@ -7,14 +7,16 @@ import { useAuth } from '../context/AuthContext'
 import {
     FileUp, ClipboardList, BarChart3, Users, TrendingUp,
     Clock, AlertTriangle, BookOpen, Plus, ChevronRight, Eye,
-    Ban, Shield, XCircle, PenTool
+    Ban, Shield, XCircle, PenTool, Copy, Download
 } from 'lucide-react'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
 import './Dashboard.css'
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08 } }) }
 
 export default function TeacherDashboard() {
-    const { cheatingReports, exams } = useExam()
+    const { cheatingReports, exams, duplicateExam } = useExam()
     const { user } = useAuth()
     const userName = user?.name || localStorage.getItem('user_name') || 'Teacher'
 
@@ -26,7 +28,6 @@ export default function TeacherDashboard() {
     const avgScore = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0
 
     const publishedExams = exams.filter(e => e.status === 'Published')
-    const draftExams = exams.filter(e => e.status === 'Draft')
 
     const stats = [
         { label: 'Total Exams', value: totalExams, icon: ClipboardList, change: `${publishedExams.length} published`, color: '#673ab7' },
@@ -34,6 +35,55 @@ export default function TeacherDashboard() {
         { label: 'Questions', value: totalQuestions, icon: BookOpen, change: 'Created', color: '#4caf50' },
         { label: 'Avg Score', value: allScores.length > 0 ? `${avgScore}%` : '—', icon: TrendingUp, change: allScores.length > 0 ? `${allScores.length} submissions` : 'No submissions yet', color: '#ff9800' },
     ]
+
+    const handleDuplicate = (examId) => {
+        if (window.confirm('Are you sure you want to duplicate this exam?')) {
+            duplicateExam(examId)
+        }
+    }
+
+    const handleExportPDF = (exam) => {
+        const doc = new jsPDF()
+
+        // Title
+        doc.setFontSize(22)
+        doc.setTextColor(40, 40, 40)
+        doc.text(exam.title, 20, 20)
+
+        doc.setFontSize(12)
+        doc.setTextColor(100, 100, 100)
+        doc.text(`Code: ${exam.code} | Duration: ${exam.duration} mins | Points: ${exam.totalPoints}`, 20, 30)
+
+        let y = 45
+
+        exam.questions.forEach((q, i) => {
+            if (y > 270) {
+                doc.addPage()
+                y = 20
+            }
+
+            doc.setFontSize(14)
+            doc.setTextColor(0, 0, 0)
+            const questionText = doc.splitTextToSize(`${i + 1}. ${q.text} (${q.points} pt)`, 170)
+            doc.text(questionText, 20, y)
+            y += questionText.length * 7
+
+            if (q.type === 'MCQ' || q.type === 'True/False') {
+                doc.setFontSize(12)
+                doc.setTextColor(80, 80, 80)
+                q.options.forEach((opt, j) => {
+                    doc.text(`   ${String.fromCharCode(65 + j)}) ${opt}`, 20, y + (j * 6))
+                })
+                y += (q.options.length * 6) + 10
+            } else if (q.type === 'Fill Blank') {
+                y += 10
+            } else {
+                y += 25 // Space for short answer
+            }
+        })
+
+        doc.save(`${exam.title.replace(/\s+/g, '_')}_QuestionPaper.pdf`)
+    }
 
     return (
         <div className="page-wrapper">
@@ -135,11 +185,19 @@ export default function TeacherDashboard() {
                                                 {new Date(e.createdAt).toLocaleDateString()}
                                             </td>
                                             <td>
-                                                {e.status === 'Published' && (
-                                                    <Link to={`/teacher/published/${e.id}`} className="btn btn-sm btn-primary">
-                                                        <Eye size={14} /> View
-                                                    </Link>
-                                                )}
+                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                    {e.status === 'Published' && (
+                                                        <Link to={`/teacher/published/${e.id}`} className="btn btn-sm btn-primary">
+                                                            <Eye size={14} />
+                                                        </Link>
+                                                    )}
+                                                    <button onClick={() => handleDuplicate(e.id)} className="btn btn-sm btn-secondary" title="Duplicate Exam">
+                                                        <Copy size={14} />
+                                                    </button>
+                                                    <button onClick={() => handleExportPDF(e)} className="btn btn-sm btn-secondary" title="Export PDF">
+                                                        <Download size={14} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

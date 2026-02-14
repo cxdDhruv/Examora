@@ -351,6 +351,110 @@ export function ExamProvider({ children }) {
         return questions
     }
 
+    // DUPLICATE EXAM Feature
+    const duplicateExam = (examId) => {
+        const examToCopy = exams.find(e => e.id === examId)
+        if (!examToCopy) return null
+
+        const newExam = {
+            ...examToCopy,
+            id: Date.now(),
+            code: generateExamCode(),
+            title: `${examToCopy.title} (Copy)`,
+            status: 'Draft',
+            createdAt: new Date().toISOString(),
+            submissions: [], // Clear submissions
+        }
+        setExams(prev => [newExam, ...prev])
+        return newExam
+    }
+
+    // TOPIC-BASED GENERATION Feature
+    const generateQuestionsFromTopic = (topic, count = 10, config = {}) => {
+        const { types, difficulty: difficultyConfig } = config || {}
+        const cleanTopic = topic.trim()
+        const questions = []
+
+        const allowedTypes = types && types.length > 0 ? types : ['MCQ', 'True/False', 'Fill Blank', 'Short Answer']
+        const difficulties = ['Easy', 'Medium', 'Hard']
+        const blooms = ['Remembering', 'Understanding', 'Applying', 'Analyzing']
+
+        for (let i = 0; i < count; i++) {
+            const type = allowedTypes[i % allowedTypes.length]
+            let difficulty
+            if (difficultyConfig) {
+                const total = difficultyConfig.Easy + difficultyConfig.Medium + difficultyConfig.Hard
+                const rand = Math.random() * total
+                if (rand < difficultyConfig.Easy) difficulty = 'Easy'
+                else if (rand < difficultyConfig.Easy + difficultyConfig.Medium) difficulty = 'Medium'
+                else difficulty = 'Hard'
+            } else {
+                difficulty = difficulties[i % 3]
+            }
+            const bloom = blooms[i % blooms.length]
+
+            let question = null
+
+            if (type === 'MCQ') {
+                const options = [
+                    `Key aspect of ${cleanTopic}`,
+                    `Unrelated concept A`,
+                    `Unrelated concept B`,
+                    `Opposite of ${cleanTopic}`
+                ].sort(() => Math.random() - 0.5)
+
+                question = {
+                    id: Date.now() + i,
+                    type: 'MCQ',
+                    text: `What is a primary characteristic of ${cleanTopic}?`,
+                    options: options,
+                    correct: options.findIndex(o => o.includes('Key aspect')),
+                    difficulty,
+                    bloom,
+                    points: 1
+                }
+            } else if (type === 'True/False') {
+                question = {
+                    id: Date.now() + i,
+                    type: 'True/False',
+                    text: `True or False: ${cleanTopic} is a fundamental concept in this field.`,
+                    options: ['True', 'False'],
+                    correct: 0,
+                    difficulty: 'Easy',
+                    bloom: 'Remembering',
+                    points: 1
+                }
+            } else if (type === 'Fill Blank') {
+                question = {
+                    id: Date.now() + i,
+                    type: 'Fill Blank',
+                    text: `The concept of ________ is crucial to understanding ${cleanTopic}.`,
+                    options: null,
+                    correct: null,
+                    answer: cleanTopic,
+                    difficulty: 'Medium',
+                    bloom: 'Applying',
+                    points: 2
+                }
+            } else {
+                question = {
+                    id: Date.now() + i,
+                    type: 'Short Answer',
+                    text: `Explain the significance of ${cleanTopic} and provide an example.`,
+                    options: null,
+                    correct: null,
+                    difficulty: 'Hard',
+                    bloom: 'Evaluating',
+                    points: 5
+                }
+            }
+            questions.push(question)
+        }
+
+        setCurrentQuestions(questions)
+        return questions
+    }
+
     return (
         <ExamContext.Provider value={{
             exams,
@@ -369,6 +473,8 @@ export function ExamProvider({ children }) {
             getExamByCode,
             getExamById,
             generateQuestions,
+            duplicateExam,
+            generateQuestionsFromTopic,
         }}>
             {children}
         </ExamContext.Provider>

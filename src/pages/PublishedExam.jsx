@@ -8,6 +8,8 @@ import {
     QrCode, Copy, CheckCircle, Share2, Download, ArrowLeft,
     Clock, FileText, Shield, Users, CloudUpload
 } from 'lucide-react'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
 import './Dashboard.css'
 
 export default function PublishedExam() {
@@ -40,7 +42,52 @@ export default function PublishedExam() {
         link.href = url
         link.download = `${exam.title.replace(/\s+/g, '_')}_results.csv`
         link.click()
+        link.click()
         URL.revokeObjectURL(url)
+    }
+
+    // ========== PDF Report Download ==========
+    const downloadReportPDF = () => {
+        if (!exam.submissions || exam.submissions.length === 0) return
+
+        const doc = new jsPDF()
+
+        // Title
+        doc.setFontSize(20)
+        doc.setTextColor(40, 40, 40)
+        doc.text(`Exam Results: ${exam.title}`, 14, 20)
+
+        doc.setFontSize(11)
+        doc.setTextColor(100, 100, 100)
+        doc.text(`Code: ${exam.code} | Date: ${new Date().toLocaleDateString()}`, 14, 28)
+
+        const tableColumn = ["Student Name", "Roll No", "Score", "Total", "Status", "Violations", "Submitted"]
+        const tableRows = []
+
+        exam.submissions.forEach(sub => {
+            const row = [
+                sub.studentInfo?.name || sub.studentName || 'Unknown',
+                sub.studentInfo?.rollNo || '-',
+                sub.score !== undefined ? sub.score : '-',
+                exam.totalPoints,
+                sub.status,
+                sub.violations || 0,
+                sub.submittedAt ? new Date(sub.submittedAt).toLocaleTimeString() : '-'
+            ]
+            tableRows.push(row)
+        })
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 35,
+            theme: 'grid',
+            headStyles: { fillColor: [99, 102, 241], textColor: 255 },
+            styles: { fontSize: 10, cellPadding: 3 },
+            alternateRowStyles: { fillColor: [248, 250, 252] }
+        })
+
+        doc.save(`${exam.title.replace(/\s+/g, '_')}_StudentResults.pdf`)
     }
 
     // ========== Google Drive Export ==========
@@ -232,8 +279,11 @@ export default function PublishedExam() {
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Student Submissions</h3>
                                 {exam.submissions && exam.submissions.length > 0 && (
                                     <div style={{ display: 'flex', gap: 8 }}>
+                                        <button className="btn btn-secondary btn-sm" onClick={downloadReportPDF}>
+                                            <FileText size={14} /> Report PDF
+                                        </button>
                                         <button className="btn btn-secondary btn-sm" onClick={downloadCSV}>
-                                            <Download size={14} /> Download CSV
+                                            <Download size={14} /> CSV
                                         </button>
                                         <button className="btn btn-primary btn-sm" onClick={exportToGoogleDrive} disabled={exporting}>
                                             <CloudUpload size={14} /> {exporting ? 'Exporting...' : 'Export to Drive'}

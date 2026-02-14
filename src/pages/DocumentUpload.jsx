@@ -6,20 +6,22 @@ import Sidebar from '../components/Sidebar'
 import { useExam } from '../context/ExamContext'
 import {
     Upload, FileText, File, CheckCircle, Brain, Sparkles,
-    Loader, ChevronRight, Download, RefreshCw, Settings2, AlertCircle
+    Loader, ChevronRight, Download, RefreshCw, Settings2, AlertCircle, PenTool
 } from 'lucide-react'
 import './Upload.css'
 
 export default function DocumentUpload() {
     const navigate = useNavigate()
     const fileInputRef = useRef(null)
-    const { generateQuestions, currentQuestions, setCurrentQuestions, setUploadedFileName, setExtractedText } = useExam()
+    const { generateQuestions, generateQuestionsFromTopic, currentQuestions, setCurrentQuestions, setUploadedFileName, setExtractedText } = useExam()
 
     const [stage, setStage] = useState('upload') // upload, configure, processing, done
     const [progress, setProgress] = useState(0)
     const [file, setFile] = useState(null)
     const [error, setError] = useState('')
     const [rawText, setRawText] = useState('')
+    const [mode, setMode] = useState('upload') // 'upload' or 'topic'
+    const [topic, setTopic] = useState('')
     const [pageCount, setPageCount] = useState(1)
 
     // Teacher Configuration
@@ -207,7 +209,13 @@ export default function DocumentUpload() {
             // Step 5: Question Generation with teacher config
             await new Promise(r => setTimeout(r, 700))
             const activeTypes = Object.entries(selectedTypes).filter(([, v]) => v).map(([k]) => k)
-            const questions = generateQuestions(rawText, questionCount, { types: activeTypes, difficulty: difficultyDist })
+
+            if (mode === 'topic') {
+                generateQuestionsFromTopic(topic, questionCount, { types: activeTypes, difficulty: difficultyDist })
+            } else {
+                generateQuestions(rawText, questionCount, { types: activeTypes, difficulty: difficultyDist })
+            }
+
             updatePipeline(4)
             setProgress(85)
 
@@ -272,8 +280,38 @@ export default function DocumentUpload() {
                     </div>
                 )}
 
-                {/* Upload Zone */}
+                {/* Tab Switcher */}
                 {stage === 'upload' && (
+                    <div className="glass" style={{ display: 'flex', padding: 4, marginBottom: 24, borderRadius: 12 }}>
+                        <button
+                            onClick={() => setMode('upload')}
+                            style={{
+                                flex: 1, padding: '10px', borderRadius: 10, border: 'none',
+                                background: mode === 'upload' ? 'var(--primary-100)' : 'transparent',
+                                color: mode === 'upload' ? 'var(--primary-600)' : 'var(--text-secondary)',
+                                fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+                            }}
+                        >
+                            <Upload size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+                            Upload Document
+                        </button>
+                        <button
+                            onClick={() => setMode('topic')}
+                            style={{
+                                flex: 1, padding: '10px', borderRadius: 10, border: 'none',
+                                background: mode === 'topic' ? 'var(--primary-100)' : 'transparent',
+                                color: mode === 'topic' ? 'var(--primary-600)' : 'var(--text-secondary)',
+                                fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+                            }}
+                        >
+                            <PenTool size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+                            Generate from Topic
+                        </button>
+                    </div>
+                )}
+
+                {/* Upload Zone */}
+                {stage === 'upload' && mode === 'upload' && (
                     <motion.div
                         className="upload-zone glass"
                         initial={{ opacity: 0, y: 20 }}
@@ -302,6 +340,53 @@ export default function DocumentUpload() {
                         <p style={{ marginTop: 16, fontSize: '0.82rem', color: 'var(--primary-300)' }}>
                             📱 Works on desktop, laptop, tablet, and phone
                         </p>
+                    </motion.div>
+                )}
+
+                {/* Topic Input Zone */}
+                {stage === 'upload' && mode === 'topic' && (
+                    <motion.div
+                        className="glass"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{ padding: 32 }}
+                    >
+                        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                            <div className="upload-icon" style={{ margin: '0 auto 16px', borderRadius: '50%', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary-50)' }}>
+                                <Brain size={40} color="var(--primary-500)" />
+                            </div>
+                            <h3>What do you want to test?</h3>
+                            <p style={{ color: 'var(--text-secondary)' }}>Enter a topic, subject, or concept — AI will generate questions for you</p>
+                        </div>
+
+                        <div style={{ maxWidth: 500, margin: '0 auto' }}>
+                            <input
+                                type="text"
+                                placeholder="e.g. 'Photosynthesis', 'World War II', 'React Hooks'"
+                                value={topic}
+                                onChange={(e) => setTopic(e.target.value)}
+                                style={{
+                                    width: '100%', padding: '14px 20px', fontSize: '1rem',
+                                    borderRadius: 12, border: '2px solid var(--border-subtle)',
+                                    marginBottom: 16, outline: 'none', transition: 'border-color 0.2s'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = 'var(--primary-400)'}
+                                onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
+                            />
+                            <button
+                                className="btn btn-primary btn-lg"
+                                style={{ width: '100%' }}
+                                disabled={!topic.trim()}
+                                onClick={() => {
+                                    setUploadedFileName(topic)
+                                    setFile({ name: topic, pages: 1 })
+                                    setRawText(`Topic: ${topic}`)
+                                    setStage('configure')
+                                }}
+                            >
+                                <Sparkles size={18} /> Continue to Configuration
+                            </button>
+                        </div>
                     </motion.div>
                 )}
 
