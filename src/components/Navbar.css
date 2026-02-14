@@ -31,13 +31,20 @@
     color: rgba(255, 255, 255, 0.9);
 }
 
+/* Specificity fix: Ensure button text is purple, overriding the generic link color */
+.navbar.landing:not(.scrolled) .nav-links .btn-primary,
 .navbar.landing:not(.scrolled) .btn-primary {
-    background: #ffffff;
-    color: var(--primary-500);
+    background: #ffffff !important;
+    color: var(--primary-500) !important;
+    border: none;
 }
 
+.navbar.landing:not(.scrolled) .nav-links .btn-primary:hover,
 .navbar.landing:not(.scrolled) .btn-primary:hover {
-    background: #f0f0f0;
+    background: #f0f0f0 !important;
+    color: var(--primary-600) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .navbar-inner {
