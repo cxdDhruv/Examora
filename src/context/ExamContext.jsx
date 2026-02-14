@@ -202,31 +202,46 @@ function generateExamCode() {
     return code
 }
 
-// Load from localStorage
+// Get storage key scoped to current user's email
+function getUserKey(base) {
+    const email = localStorage.getItem('user_email') || 'anonymous'
+    return `${base}_${email}`
+}
+
+// Load from localStorage (per-user)
 function loadExams() {
     try {
-        const data = localStorage.getItem('examai_exams')
+        const data = localStorage.getItem(getUserKey('examai_exams'))
         return data ? JSON.parse(data) : []
     } catch { return [] }
 }
 
 function loadCheatingReports() {
     try {
-        const data = localStorage.getItem('examai_cheating_reports')
+        const data = localStorage.getItem(getUserKey('examai_cheating_reports'))
         return data ? JSON.parse(data) : []
     } catch { return [] }
 }
 
 function saveExams(exams) {
-    localStorage.setItem('examai_exams', JSON.stringify(exams))
+    localStorage.setItem(getUserKey('examai_exams'), JSON.stringify(exams))
 }
 
 function saveCheatingReports(reports) {
-    localStorage.setItem('examai_cheating_reports', JSON.stringify(reports))
+    localStorage.setItem(getUserKey('examai_cheating_reports'), JSON.stringify(reports))
+}
+
+// Clean up old shared keys (one-time migration)
+function cleanOldData() {
+    localStorage.removeItem('examai_exams')
+    localStorage.removeItem('examai_cheating_reports')
 }
 
 export function ExamProvider({ children }) {
-    const [exams, setExams] = useState(() => loadExams())
+    const [exams, setExams] = useState(() => {
+        cleanOldData()
+        return loadExams()
+    })
     const [cheatingReports, setCheatingReports] = useState(() => loadCheatingReports())
     const [currentQuestions, setCurrentQuestions] = useState([])
     const [uploadedFileName, setUploadedFileName] = useState('')
@@ -241,6 +256,7 @@ export function ExamProvider({ children }) {
             id: Date.now(),
             code: generateExamCode(),
             createdAt: new Date().toISOString(),
+            createdBy: localStorage.getItem('user_email') || 'unknown',
             status: 'Draft',
             submissions: [],
         }
