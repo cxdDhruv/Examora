@@ -27,7 +27,7 @@ export default function TakeExam() {
             const stored = sessionStorage.getItem('current_exam')
             if (stored) {
                 const parsed = JSON.parse(stored)
-                if (parsed.id === id) return parsed
+                if (parsed.id == id) return parsed
             }
         } catch { }
         return null
@@ -372,6 +372,30 @@ export default function TakeExam() {
         )
     }
 
+    // Calculate score for display
+
+    const downloadResult = () => {
+        const resultText = `
+EXAM RESULT: ${examTitle}
+Student: ${studentInfo.name} (${studentInfo.rollNo})
+Date: ${new Date().toLocaleString()}
+----------------------------------------
+Duration: ${examDuration} mins
+Time Taken: ${Math.floor((examDuration * 60 - timeLeft) / 60)}m ${(examDuration * 60 - timeLeft) % 60}s
+Questions Answered: ${answeredCount} / ${examQuestions.length}
+Violations Detected: ${violationCount}
+----------------------------------------
+Thank you for using ExamAI.
+        `.trim()
+
+        const blob = new Blob([resultText], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${studentInfo.name}_${examTitle.replace(/\s+/g, '_')}_Result.txt`
+        a.click()
+    }
+
     if (submitted) {
         return (
             <div className="exam-submitted">
@@ -383,7 +407,12 @@ export default function TakeExam() {
                         <div><strong>{answeredCount}</strong><span>Answered</span></div>
                         <div><strong>{violationCount}</strong><span>Violations</span></div>
                     </div>
-                    <button className="btn btn-primary btn-lg" onClick={() => navigate('/')}>Home</button>
+                    <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'center' }}>
+                        <button className="btn btn-secondary" onClick={downloadResult}>
+                            Download Result
+                        </button>
+                        <button className="btn btn-primary" onClick={() => navigate('/')}>Home</button>
+                    </div>
                 </div>
             </div>
         )
