@@ -109,7 +109,7 @@ export default function Landing() {
             <section className="features-section" id="features">
                 <div className="container">
                     <div className="section-header">
-                        <h2>Eight Powerful <span className="gradient-text">AI Modules</span></h2>
+                        <h2>Eight Powerful <span className="gradient-text-purple">AI Modules</span></h2>
                         <p>Every aspect of online examination — automated, secured, and analyzed</p>
                     </div>
                     <div className="features-grid">
@@ -130,7 +130,7 @@ export default function Landing() {
             <section className="comparison-section" id="comparison">
                 <div className="container">
                     <div className="section-header">
-                        <h2>Why <span className="gradient-text">Examora</span> over Google Forms?</h2>
+                        <h2>Why <span className="gradient-text-purple">Examora</span> over Google Forms?</h2>
                         <p>Traditional form tools fail at academic integrity. We fix that.</p>
                     </div>
                     <div className="comparison-table glass">

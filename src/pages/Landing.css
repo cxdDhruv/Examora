@@ -50,6 +50,12 @@
 }
 
 .gradient-text {
+    color: white;
+    -webkit-text-fill-color: white;
+    background: none;
+}
+
+.gradient-text-purple {
     background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-400) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
