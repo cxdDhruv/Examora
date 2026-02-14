@@ -34,8 +34,8 @@ export default function Navbar({ user: propUser }) {
         <nav className={`navbar ${scrolled ? 'scrolled' : ''} ${isLanding ? 'landing' : ''}`}>
             <div className="navbar-inner">
                 <Link to="/" className="navbar-brand">
-                    <div className="brand-icon"><Brain size={22} /></div>
-                    <span className="brand-text">Exam<span className="brand-highlight">AI</span></span>
+                    <img src="/logo.png" alt="Examora" className="brand-logo" style={{ height: 28, width: 'auto' }} />
+                    <span className="brand-text">Examora</span>
                 </Link>
 
                 {isLanding ? (

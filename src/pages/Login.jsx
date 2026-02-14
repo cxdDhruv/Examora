@@ -16,8 +16,8 @@ export default function Login() {
         <div className="auth-page">
             <motion.div className="auth-card glass" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                 <Link to="/" className="auth-brand">
-                    <div className="brand-icon"><Brain size={20} /></div>
-                    <span className="brand-text">Exam<span className="brand-highlight">AI</span></span>
+                    <img src="/logo.png" alt="Examora" className="brand-logo" style={{ height: 40, width: 'auto' }} />
+                    <span className="brand-text">Examora</span>
                 </Link>
 
                 <h1>Welcome back</h1>
@@ -75,7 +75,7 @@ export default function Login() {
                 </div>
 
                 <p className="auth-footer">
-                    Protected by ExamAI Security
+                    Protected by Examora Security
                 </p>
             </motion.div>
         </div>

@@ -17,12 +17,12 @@ export default function Register() {
 
             <motion.div className="auth-card glass" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                 <Link to="/" className="auth-brand">
-                    <div className="brand-icon"><Brain size={20} /></div>
-                    <span className="brand-text">Exam<span className="brand-highlight">AI</span></span>
+                    <img src="/logo.png" alt="Examora" className="brand-logo" style={{ height: 40, width: 'auto' }} />
+                    <span className="brand-text">Examora</span>
                 </Link>
 
                 <h1>Create Account</h1>
-                <p className="auth-subtitle">Join ExamAI to revolutionize your assessments</p>
+                <p className="auth-subtitle">Join Examora to revolutionize your assessments</p>
 
                 <div className="register-steps">
                     <div className={`step-dot ${step >= 1 ? 'active' : ''} ${step > 1 ? 'done' : ''}`}></div>

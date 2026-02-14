@@ -128,13 +128,13 @@ export default function Landing() {
             <section className="comparison-section" id="comparison">
                 <div className="container">
                     <div className="section-header">
-                        <h2>Why <span className="gradient-text">ExamAI</span> over Google Forms?</h2>
+                        <h2>Why <span className="gradient-text">Examora</span> over Google Forms?</h2>
                         <p>Traditional form tools fail at academic integrity. We fix that.</p>
                     </div>
                     <div className="comparison-table glass">
                         <div className="comparison-header">
                             <div>Google Forms Limitation</div>
-                            <div>ExamAI Solution</div>
+                            <div>Examora Solution</div>
                         </div>
                         {comparisons.map((c, i) => (
                             <motion.div key={i} className="comparison-row" custom={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
@@ -164,8 +164,8 @@ export default function Landing() {
                 <div className="container footer-inner">
                     <div className="footer-brand">
                         <div className="navbar-brand">
-                            <div className="brand-icon"><Brain size={18} /></div>
-                            <span className="brand-text">Exam<span className="brand-highlight">AI</span></span>
+                            <img src="/logo.png" alt="Examora" className="brand-logo" style={{ height: 24, width: 'auto' }} />
+                            <span className="brand-text">Examora</span>
                         </div>
                         <p>AI-Driven Secure Online Examination System</p>
                     </div>
@@ -184,7 +184,7 @@ export default function Landing() {
                         </div>
                     </div>
                     <div className="footer-bottom">
-                        <span>© 2026 ExamAI. All rights reserved.</span>
+                        <span>© 2026 Examora. All rights reserved.</span>
                     </div>
                 </div>
             </footer>

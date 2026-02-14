@@ -385,7 +385,7 @@ Time Taken: ${Math.floor((examDuration * 60 - timeLeft) / 60)}m ${(examDuration 
 Questions Answered: ${answeredCount} / ${examQuestions.length}
 Violations Detected: ${violationCount}
 ----------------------------------------
-Thank you for using ExamAI.
+Thank you for using Examora.
         `.trim()
 
         const blob = new Blob([resultText], { type: 'text/plain' })
