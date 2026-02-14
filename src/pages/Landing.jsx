@@ -190,7 +190,7 @@ export default function Landing() {
                             <img src={ownerImg} alt="Dhruv Jasani" className="owner-img" />
                             <div className="owner-info">
                                 <span className="owner-name">Dhruv Jasani</span>
-                                <span className="owner-degree">Mechatronics Student</span>
+                                <span className="owner-degree">Mechatronics Student • GCET</span>
                                 <a href="mailto:jasanidhruv256@gmail.com" className="owner-email">jasanidhruv256@gmail.com</a>
                             </div>
                         </div>

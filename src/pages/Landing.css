@@ -541,6 +541,7 @@
         gap: 16px;
     }
 }
+
 /* Owner Credit */
 .footer-bottom {
     display: flex;
@@ -555,43 +556,49 @@
 .owner-credit {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5rem;
     background: rgba(0, 0, 0, 0.05);
-    padding: 0.75rem 1.5rem;
+    padding: 1.25rem 2.5rem;
     border-radius: 50px;
     border: 1px solid rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(10px);
+    transform: scale(1.1);
 }
 
 .owner-img {
-    width: 48px;
-    height: 48px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid var(--primary-500);
+    border: 3px solid var(--primary-500);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .owner-info {
     display: flex;
     flex-direction: column;
     text-align: left;
+    gap: 4px;
 }
 
 .owner-name {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--text-primary);
-    font-size: 0.95rem;
+    font-size: 1.4rem;
+    line-height: 1.2;
 }
 
 .owner-degree {
-    font-size: 0.8rem;
+    font-size: 1rem;
     color: var(--text-secondary);
+    font-weight: 500;
 }
 
 .owner-email {
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     color: var(--primary-500);
     text-decoration: none;
+    font-weight: 500;
 }
 
 .owner-email:hover {
