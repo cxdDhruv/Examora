@@ -511,8 +511,9 @@
         padding: 40px 20px;
     }
 
-    .cta-card h2 {
-        font-size: 1.5rem;
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
     }
 
     .footer-links {
@@ -520,58 +521,53 @@
         flex-wrap: wrap;
     }
 
-    .features-section,
-    .comparison-section,
-    .cta-section {
-        padding: 60px 0;
+    .owner-credit {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 1.5rem;
     }
 }
 
-@media (max-width: 480px) {
-    .hero-text h1 {
-        font-size: 1.7rem;
-    }
-
-    .hero-visual {
-        display: none;
-    }
-
-    .hero-stats {
-        flex-wrap: wrap;
-        gap: 16px;
-    }
-}
-
-/* Owner Credit */
-.footer-bottom {
-    display: flex;
-    flex-direction: column;
+/* Owner Credit & Footer Layout */
+.footer-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr auto;
+    gap: 60px;
     align-items: center;
-    gap: 1.5rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    padding-top: 2rem;
-    margin-top: 2rem;
+    margin-bottom: 40px;
+}
+
+.footer-bottom {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 24px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
 }
 
 .owner-credit {
     display: flex;
     align-items: center;
     gap: 1.5rem;
-    background: rgba(0, 0, 0, 0.05);
-    padding: 1.25rem 2.5rem;
-    border-radius: 50px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(10px);
-    transform: scale(1.1);
+    background: white;
+    padding: 1.5rem 2.5rem;
+    border-radius: 24px;
+    border: 1px solid var(--border-medium);
+    box-shadow: var(--shadow-md);
+    transition: transform 0.3s ease;
+}
+
+.owner-credit:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
 }
 
 .owner-img {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
     object-fit: cover;
     border: 4px solid var(--primary-500);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .owner-info {
@@ -589,13 +585,13 @@
 }
 
 .owner-degree {
-    font-size: 1rem;
+    font-size: 1.1rem;
     color: var(--text-secondary);
     font-weight: 500;
 }
 
 .owner-email {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: var(--primary-500);
     text-decoration: none;
     font-weight: 500;

@@ -164,36 +164,43 @@ export default function Landing() {
             {/* Footer */}
             <footer className="footer">
                 <div className="container footer-inner">
-                    <div className="footer-brand">
-                        <div className="navbar-brand">
-                            <img src={logo} alt="Examora" className="brand-logo" style={{ height: 24, width: 'auto' }} />
-                            <span className="brand-text">Examora</span>
+                    <div className="footer-grid">
+                        <div className="footer-brand">
+                            <div className="navbar-brand">
+                                <img src={logo} alt="Examora" className="brand-logo" style={{ height: 28, width: 'auto' }} />
+                                <span className="brand-text">Examora</span>
+                            </div>
+                            <p>AI-Driven Secure Online Examination System. Generating high-quality questions and ensuring academic integrity.</p>
                         </div>
-                        <p>AI-Driven Secure Online Examination System</p>
-                    </div>
-                    <div className="footer-links">
-                        <div>
-                            <h4>Product</h4>
-                            <a href="#features">Features</a>
-                            <a href="#modules">Modules</a>
-                            <a href="#comparison">Compare</a>
-                        </div>
-                        <div>
-                            <h4>Quick Access</h4>
-                            <Link to="/login">Sign In</Link>
-                            <Link to="/register">Register</Link>
-                            <Link to="/teacher">Dashboard</Link>
-                        </div>
-                    </div>
-                    <div className="footer-bottom">
-                        <div className="owner-credit">
-                            <img src={ownerImg} alt="Dhruv Jasani" className="owner-img" />
-                            <div className="owner-info">
-                                <span className="owner-name">Dhruv Jasani</span>
-                                <span className="owner-degree">Mechatronics Student • GCET</span>
-                                <a href="mailto:jasanidhruv256@gmail.com" className="owner-email">jasanidhruv256@gmail.com</a>
+
+                        <div className="footer-links">
+                            <div>
+                                <h4>Product</h4>
+                                <a href="#features">Features</a>
+                                <a href="#modules">Modules</a>
+                                <a href="#comparison">Compare</a>
+                            </div>
+                            <div>
+                                <h4>Quick Access</h4>
+                                <Link to="/login">Sign In</Link>
+                                <Link to="/register">Register</Link>
+                                <Link to="/teacher">Dashboard</Link>
                             </div>
                         </div>
+
+                        <div className="footer-owner-section">
+                            <div className="owner-credit">
+                                <img src={ownerImg} alt="Dhruv Jasani" className="owner-img" />
+                                <div className="owner-info">
+                                    <span className="owner-name">Dhruv Jasani</span>
+                                    <span className="owner-degree">Mechatronics Student • GCET</span>
+                                    <a href="mailto:jasanidhruv256@gmail.com" className="owner-email">jasanidhruv256@gmail.com</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="footer-bottom">
                         <span>© 2026 Examora. All rights reserved.</span>
                     </div>
                 </div>
