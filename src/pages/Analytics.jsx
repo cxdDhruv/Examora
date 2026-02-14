@@ -1,105 +1,62 @@
-import { useState } from 'react'
 import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
+import { useExam } from '../context/ExamContext'
 import {
-    BarChart3, TrendingUp, Users, AlertTriangle, Download, Filter
+    BarChart3, TrendingUp, Users, AlertTriangle, Download
 } from 'lucide-react'
 import {
-    AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis,
-    PolarRadiusAxis, Radar, Legend
+    BarChart, Bar, XAxis, YAxis, CartesianGrid,
+    Tooltip, ResponsiveContainer
 } from 'recharts'
 import './Analytics.css'
 import './Dashboard.css'
 
-const performanceData = [
-    { name: 'Physics MT', avgScore: 74, passRate: 82, attempts: 145 },
-    { name: 'DS Final', avgScore: 68, passRate: 75, attempts: 198 },
-    { name: 'ML Quiz', avgScore: 81, passRate: 90, attempts: 87 },
-    { name: 'Calc Ch5', avgScore: 72, passRate: 78, attempts: 210 },
-    { name: 'OS Quiz', avgScore: 65, passRate: 70, attempts: 156 },
-]
-
-const topicStrength = [
-    { topic: 'Mechanics', score: 85 },
-    { topic: 'Thermodynamics', score: 62 },
-    { topic: 'Optics', score: 78 },
-    { topic: 'Electromagnetism', score: 70 },
-    { topic: 'Quantum', score: 55 },
-    { topic: 'Relativity', score: 72 },
-]
-
-const timeDistribution = [
-    { name: 'Q1', avgTime: 45, expectedTime: 60 },
-    { name: 'Q2', avgTime: 30, expectedTime: 30 },
-    { name: 'Q3', avgTime: 90, expectedTime: 60 },
-    { name: 'Q4', avgTime: 120, expectedTime: 90 },
-    { name: 'Q5', avgTime: 180, expectedTime: 120 },
-    { name: 'Q6', avgTime: 35, expectedTime: 30 },
-    { name: 'Q7', avgTime: 25, expectedTime: 30 },
-    { name: 'Q8', avgTime: 55, expectedTime: 60 },
-]
-
-const riskStudents = [
-    { name: 'Ankit Kumar', exam: 'Physics MT', violations: 5, riskScore: 87, riskLevel: 'High' },
-    { name: 'Priya Singh', exam: 'ML Quiz', violations: 3, riskScore: 62, riskLevel: 'Medium' },
-    { name: 'Ravi Patel', exam: 'DS Final', violations: 4, riskScore: 75, riskLevel: 'High' },
-    { name: 'Neha Gupta', exam: 'Calc Ch5', violations: 2, riskScore: 40, riskLevel: 'Low' },
-    { name: 'Arun Mehta', exam: 'OS Quiz', violations: 3, riskScore: 58, riskLevel: 'Medium' },
-]
-
-const heatMapData = [
-    [85, 90, 72, 65, 88, 45, 70, 82, 91, 60],
-    [70, 55, 80, 78, 40, 72, 85, 60, 75, 82],
-    [92, 88, 65, 70, 85, 78, 55, 90, 68, 72],
-    [60, 72, 88, 82, 75, 90, 78, 45, 85, 70],
-    [78, 65, 70, 90, 82, 55, 92, 85, 60, 88],
-]
-
-const heatMapLabels = ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10']
-const heatMapExams = ['Physics MT', 'DS Final', 'ML Quiz', 'Calc Ch5', 'OS Quiz']
-
-function getHeatColor(val) {
-    if (val >= 80) return '#22c55e'
-    if (val >= 60) return '#f59e0b'
-    return '#ef4444'
-}
-
 export default function Analytics() {
-    const [tab, setTab] = useState('overview')
+    const { exams, cheatingReports } = useExam()
+
+    // Build real analytics from exam data
+    const examPerformance = exams.map(e => {
+        const subs = e.submissions || []
+        const scores = subs.map(s => s.score || 0)
+        const totalPossible = e.totalPoints || e.questions?.reduce((s, q) => s + (q.points || 1), 0) || 1
+        return {
+            name: (e.title || 'Untitled').slice(0, 15),
+            avgScore: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
+            submissions: subs.length,
+            passRate: scores.length > 0 ? Math.round(scores.filter(s => s >= totalPossible * 0.4).length / scores.length * 100) : 0,
+        }
+    })
+
+    const totalSubmissions = exams.reduce((sum, e) => sum + (e.submissions?.length || 0), 0)
+    const allScores = exams.flatMap(e => (e.submissions || []).map(s => s.score || 0))
+    const overallAvg = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0
+
+    // Violation breakdown from cheating reports
+    const violationTypes = {}
+    cheatingReports.forEach(r => {
+        const reason = r.reason || 'Unknown'
+        violationTypes[reason] = (violationTypes[reason] || 0) + 1
+    })
 
     return (
         <div className="page-wrapper">
-            <Navbar user={{ name: 'Dhruv Patel', role: 'teacher' }} />
+            <Navbar />
             <Sidebar role="teacher" />
             <main className="main-content">
                 <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                     <div>
-                        <h1>Analytics Dashboard</h1>
-                        <p>Comprehensive insights into exam performance, student behavior, and question quality</p>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <button className="btn btn-secondary"><Filter size={16} /> Filter</button>
-                        <button className="btn btn-primary"><Download size={16} /> Export PDF</button>
+                        <h1>Analytics</h1>
+                        <p>Insights from your exams and student performance</p>
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="tabs" style={{ marginBottom: 20 }}>
-                    {['overview', 'performance', 'behavior', 'questions'].map(t => (
-                        <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
-                            {t.charAt(0).toUpperCase() + t.slice(1)}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Overview Stats */}
-                <div className="grid grid-4">
+                {/* Stats row */}
+                <div className="grid grid-4" style={{ marginBottom: 24 }}>
                     {[
-                        { label: 'Average Score', value: '72%', icon: TrendingUp, color: '#818cf8' },
-                        { label: 'Pass Rate', value: '79%', icon: BarChart3, color: '#4ade80' },
-                        { label: 'Total Students', value: '796', icon: Users, color: '#22d3ee' },
-                        { label: 'Flagged Students', value: '12', icon: AlertTriangle, color: '#f87171' },
+                        { label: 'Total Exams', value: exams.length, icon: BarChart3, color: '#673ab7' },
+                        { label: 'Submissions', value: totalSubmissions, icon: Users, color: '#2196f3' },
+                        { label: 'Overall Avg', value: allScores.length > 0 ? `${overallAvg}%` : '—', icon: TrendingUp, color: '#4caf50' },
+                        { label: 'Violations', value: cheatingReports.length, icon: AlertTriangle, color: '#f44336' },
                     ].map((s, i) => (
                         <div key={i} className="stat-card glass">
                             <div className="stat-icon" style={{ background: `${s.color}15`, color: s.color }}>
@@ -113,133 +70,97 @@ export default function Analytics() {
                     ))}
                 </div>
 
-                <div className="grid grid-2" style={{ marginTop: 20 }}>
-                    {/* Performance Chart */}
-                    <div className="chart-card glass">
-                        <div className="chart-header">
-                            <h3>Exam Performance Trends</h3>
+                {exams.length === 0 ? (
+                    <div className="glass" style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <BarChart3 size={48} style={{ marginBottom: 16, opacity: 0.4 }} />
+                        <h3 style={{ fontWeight: 500, marginBottom: 8 }}>No analytics yet</h3>
+                        <p>Create and publish exams to see performance data here.</p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Performance Chart */}
+                        <div className="glass" style={{ padding: 24, marginBottom: 20 }}>
+                            <h3 style={{ marginBottom: 20 }}>Exam Performance</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={examPerformance}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                                    <XAxis dataKey="name" stroke="#666" fontSize={11} />
+                                    <YAxis stroke="#666" fontSize={11} />
+                                    <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, fontSize: 13 }} />
+                                    <Bar dataKey="avgScore" name="Avg Score" fill="#673ab7" radius={[6, 6, 0, 0]} />
+                                    <Bar dataKey="submissions" name="Submissions" fill="#2196f3" radius={[6, 6, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
-                        <ResponsiveContainer width="100%" height={260}>
-                            <BarChart data={performanceData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-                                <YAxis stroke="#64748b" fontSize={12} />
-                                <Tooltip contentStyle={{ background: '#1a1a3e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9', fontSize: 13 }} />
-                                <Legend wrapperStyle={{ fontSize: 12 }} />
-                                <Bar dataKey="avgScore" name="Avg Score" fill="#818cf8" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="passRate" name="Pass Rate %" fill="#4ade80" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
 
-                    {/* Topic Radar */}
-                    <div className="chart-card glass">
-                        <div className="chart-header">
-                            <h3>Topic Strength Analysis</h3>
-                            <span className="badge badge-warning">Weak: Quantum</span>
-                        </div>
-                        <ResponsiveContainer width="100%" height={260}>
-                            <RadarChart data={topicStrength}>
-                                <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                                <PolarAngleAxis dataKey="topic" stroke="#94a3b8" fontSize={11} />
-                                <PolarRadiusAxis stroke="rgba(255,255,255,0.05)" fontSize={10} />
-                                <Radar name="Score" dataKey="score" stroke="#818cf8" fill="#818cf8" fillOpacity={0.2} strokeWidth={2} />
-                            </RadarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Time Distribution */}
-                <div className="chart-card glass" style={{ marginTop: 20 }}>
-                    <div className="chart-header">
-                        <h3>Time Spent per Question vs Expected</h3>
-                        <span className="badge badge-info">Physics Mid-Term</span>
-                    </div>
-                    <ResponsiveContainer width="100%" height={220}>
-                        <AreaChart data={timeDistribution}>
-                            <defs>
-                                <linearGradient id="gTime" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#818cf8" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                            <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-                            <YAxis stroke="#64748b" fontSize={12} label={{ value: 'seconds', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 11 }} />
-                            <Tooltip contentStyle={{ background: '#1a1a3e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9', fontSize: 13 }} />
-                            <Legend wrapperStyle={{ fontSize: 12 }} />
-                            <Area type="monotone" dataKey="avgTime" name="Avg Time" stroke="#818cf8" fill="url(#gTime)" strokeWidth={2} />
-                            <Area type="monotone" dataKey="expectedTime" name="Expected" stroke="#64748b" fill="transparent" strokeDasharray="5 5" strokeWidth={1.5} />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-
-                {/* Heat Map */}
-                <div className="glass" style={{ marginTop: 20, padding: 24 }}>
-                    <div className="chart-header">
-                        <h3>Question Accuracy Heat Map</h3>
-                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Green = High accuracy, Red = Low accuracy</span>
-                    </div>
-                    <div className="heatmap-container">
-                        <div className="heatmap-header">
-                            <div className="heatmap-label"></div>
-                            {heatMapLabels.map(l => <div key={l} className="heatmap-cell-label">{l}</div>)}
-                        </div>
-                        {heatMapData.map((row, ri) => (
-                            <div key={ri} className="heatmap-row">
-                                <div className="heatmap-label">{heatMapExams[ri]}</div>
-                                {row.map((val, ci) => (
-                                    <div key={ci} className="heatmap-cell" style={{ background: `${getHeatColor(val)}15`, color: getHeatColor(val), borderColor: `${getHeatColor(val)}33` }}>
-                                        {val}%
-                                    </div>
-                                ))}
+                        {/* Exam Details Table */}
+                        <div className="glass" style={{ overflow: 'hidden' }}>
+                            <div className="table-top">
+                                <h3>Exam Details</h3>
                             </div>
-                        ))}
-                    </div>
-                </div>
+                            <div className="table-responsive">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Exam</th>
+                                            <th>Submissions</th>
+                                            <th>Avg Score</th>
+                                            <th>Pass Rate</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {exams.map(e => {
+                                            const subs = e.submissions || []
+                                            const scores = subs.map(s => s.score || 0)
+                                            const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
+                                            return (
+                                                <tr key={e.id}>
+                                                    <td><strong>{e.title}</strong></td>
+                                                    <td>{subs.length}</td>
+                                                    <td>{scores.length > 0 ? `${avg}` : '—'}</td>
+                                                    <td>{scores.length > 0 ? `${Math.round(scores.filter(s => s > 0).length / scores.length * 100)}%` : '—'}</td>
+                                                    <td>
+                                                        <span className={`badge ${e.status === 'Published' ? 'badge-success' : 'badge-warning'}`}>
+                                                            {e.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
 
-                {/* Risk Students */}
-                <div className="glass" style={{ marginTop: 20, overflow: 'hidden' }}>
-                    <div className="table-top">
-                        <h3>⚠️ High-Risk Students</h3>
-                        <span className="badge badge-danger">Requires Review</span>
-                    </div>
-                    <div className="table-responsive">
-                        <table className="data-table">
-                            <thead>
-                                <tr><th>Student</th><th>Exam</th><th>Violations</th><th>Risk Score</th><th>Level</th></tr>
-                            </thead>
-                            <tbody>
-                                {riskStudents.map((s, i) => (
-                                    <tr key={i}>
-                                        <td><strong>{s.name}</strong></td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>{s.exam}</td>
-                                        <td>{s.violations}</td>
-                                        <td>
-                                            <div className="risk-meter">
-                                                <div className="risk-bar-bg">
-                                                    <div className="risk-bar-fill" style={{
-                                                        width: `${s.riskScore}%`,
-                                                        background: s.riskScore > 70 ? 'var(--danger-400)' : s.riskScore > 50 ? 'var(--warning-400)' : 'var(--success-400)'
-                                                    }}></div>
-                                                </div>
-                                                <span className="risk-value" style={{
-                                                    color: s.riskScore > 70 ? 'var(--danger-400)' : s.riskScore > 50 ? 'var(--warning-400)' : 'var(--success-400)',
-                                                    fontSize: '0.85rem'
-                                                }}>{s.riskScore}%</span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${s.riskLevel === 'High' ? 'badge-danger' : s.riskLevel === 'Medium' ? 'badge-warning' : 'badge-success'}`}>
-                                                {s.riskLevel}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                        {/* Violation Breakdown */}
+                        {cheatingReports.length > 0 && (
+                            <div className="glass" style={{ marginTop: 20, overflow: 'hidden' }}>
+                                <div className="table-top">
+                                    <h3>Violation Breakdown</h3>
+                                </div>
+                                <div className="table-responsive">
+                                    <table className="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Violation Type</th>
+                                                <th>Count</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {Object.entries(violationTypes).map(([type, count]) => (
+                                                <tr key={type}>
+                                                    <td>{type}</td>
+                                                    <td><strong>{count}</strong></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
             </main>
         </div>
     )

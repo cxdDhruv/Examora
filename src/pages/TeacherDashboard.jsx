@@ -3,59 +3,46 @@ import { motion } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
 import { useExam } from '../context/ExamContext'
+import { useAuth } from '../context/AuthContext'
 import {
     FileUp, ClipboardList, BarChart3, Users, TrendingUp,
     Clock, AlertTriangle, BookOpen, Plus, ChevronRight, Eye,
-    Ban, Shield, XCircle
+    Ban, Shield, XCircle, PenTool
 } from 'lucide-react'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import './Dashboard.css'
-
-const stats = [
-    { label: 'Total Exams', value: '24', icon: ClipboardList, change: '+3 this week', color: '#818cf8' },
-    { label: 'Students', value: '1,247', icon: Users, change: '+89 this month', color: '#22d3ee' },
-    { label: 'AI Questions', value: '3,482', icon: BookOpen, change: 'Auto-generated', color: '#4ade80' },
-    { label: 'Avg Score', value: '72%', icon: TrendingUp, change: '+5% improvement', color: '#fbbf24' },
-]
-
-const activityData = [
-    { name: 'Mon', exams: 12, students: 145 },
-    { name: 'Tue', exams: 8, students: 98 },
-    { name: 'Wed', exams: 15, students: 210 },
-    { name: 'Thu', exams: 11, students: 178 },
-    { name: 'Fri', exams: 18, students: 256 },
-    { name: 'Sat', exams: 6, students: 73 },
-    { name: 'Sun', exams: 3, students: 42 },
-]
-
-const recentExams = [
-    { id: 1, title: 'Physics Mid-Term 2026', students: 145, date: 'Feb 12, 2026', status: 'Completed', avgScore: 74, violations: 3 },
-    { id: 2, title: 'Data Structures Final', students: 198, date: 'Feb 10, 2026', status: 'Completed', avgScore: 68, violations: 7 },
-    { id: 3, title: 'Machine Learning Quiz', students: 87, date: 'Feb 14, 2026', status: 'Active', avgScore: null, violations: 1 },
-    { id: 4, title: 'Calculus Chapter 5 Test', students: 210, date: 'Feb 15, 2026', status: 'Scheduled', avgScore: null, violations: 0 },
-]
-
-const violationData = [
-    { name: 'Tab Switch', value: 45, color: '#818cf8' },
-    { name: 'Face Not Detected', value: 22, color: '#f87171' },
-    { name: 'Multiple Faces', value: 12, color: '#fbbf24' },
-    { name: 'Fullscreen Exit', value: 18, color: '#22d3ee' },
-    { name: 'Copy Attempt', value: 8, color: '#4ade80' },
-]
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08 } }) }
 
 export default function TeacherDashboard() {
     const { cheatingReports, exams } = useExam()
+    const { user } = useAuth()
+    const userName = user?.name || localStorage.getItem('user_name') || 'Teacher'
+
+    // Compute real stats from context
+    const totalExams = exams.length
+    const totalStudents = exams.reduce((sum, e) => sum + (e.submissions?.length || 0), 0)
+    const totalQuestions = exams.reduce((sum, e) => sum + (e.questions?.length || 0), 0)
+    const allScores = exams.flatMap(e => (e.submissions || []).map(s => s.score || 0))
+    const avgScore = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0
+
+    const publishedExams = exams.filter(e => e.status === 'Published')
+    const draftExams = exams.filter(e => e.status === 'Draft')
+
+    const stats = [
+        { label: 'Total Exams', value: totalExams, icon: ClipboardList, change: `${publishedExams.length} published`, color: '#673ab7' },
+        { label: 'Submissions', value: totalStudents, icon: Users, change: `Across ${totalExams} exams`, color: '#2196f3' },
+        { label: 'Questions', value: totalQuestions, icon: BookOpen, change: 'Created', color: '#4caf50' },
+        { label: 'Avg Score', value: allScores.length > 0 ? `${avgScore}%` : '—', icon: TrendingUp, change: allScores.length > 0 ? `${allScores.length} submissions` : 'No submissions yet', color: '#ff9800' },
+    ]
 
     return (
         <div className="page-wrapper">
-            <Navbar user={{ name: 'Dhruv Patel', role: 'teacher' }} />
+            <Navbar />
             <Sidebar role="teacher" />
             <main className="main-content">
                 <div className="page-header">
                     <h1>Teacher Dashboard</h1>
-                    <p>Welcome back, Dhruv! Here's an overview of your examination activity.</p>
+                    <p>Welcome back, {userName}! Here's your examination overview.</p>
                 </div>
 
                 {/* Cheating Alert Banner */}
@@ -66,23 +53,22 @@ export default function TeacherDashboard() {
                         style={{
                             display: 'flex', alignItems: 'center', gap: 12,
                             padding: '14px 20px', marginBottom: 20, borderRadius: 12,
-                            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+                            background: '#ffebee', border: '1px solid #ffcdd2',
                         }}
                     >
-                        <Ban size={22} color="var(--danger-400)" />
+                        <Ban size={22} color="#c62828" />
                         <div style={{ flex: 1 }}>
-                            <strong style={{ color: 'var(--danger-400)' }}>
+                            <strong style={{ color: '#c62828' }}>
                                 🚨 {cheatingReports.length} Cheating Report{cheatingReports.length > 1 ? 's' : ''} Detected
                             </strong>
                             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                                {cheatingReports.filter(r => !r.reviewed).length} unreviewed — scroll down to see details
+                                {cheatingReports.filter(r => !r.reviewed).length} unreviewed
                             </p>
                         </div>
-                        <a href="#cheating-reports" className="btn btn-sm btn-danger">View Reports ↓</a>
                     </motion.div>
                 )}
 
-                {/* Stats row */}
+                {/* Stats */}
                 <div className="grid grid-4">
                     {stats.map((s, i) => (
                         <motion.div key={i} className="stat-card glass" custom={i} initial="hidden" animate="visible" variants={fadeUp}>
@@ -99,203 +85,109 @@ export default function TeacherDashboard() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="quick-actions">
-                    <Link to="/teacher/upload" className="action-btn glass">
-                        <FileUp size={20} /> Upload Document & Generate Questions
-                    </Link>
-                    <Link to="/teacher/exam-builder" className="action-btn glass">
-                        <Plus size={20} /> Create New Exam
-                    </Link>
-                    <Link to="/teacher/analytics" className="action-btn glass">
-                        <BarChart3 size={20} /> View Analytics
-                    </Link>
+                <div style={{ display: 'flex', gap: 12, margin: '24px 0', flexWrap: 'wrap' }}>
+                    <Link to="/teacher/upload" className="btn btn-primary"><FileUp size={16} /> Upload PDF & Generate</Link>
+                    <Link to="/teacher/exam-builder" className="btn btn-secondary"><PenTool size={16} /> Create Manually</Link>
+                    <Link to="/teacher/analytics" className="btn btn-secondary"><BarChart3 size={16} /> Analytics</Link>
                 </div>
 
-                {/* Charts row */}
-                <div className="grid grid-2" style={{ marginTop: 20 }}>
-                    <div className="chart-card glass">
-                        <div className="chart-header">
-                            <h3>Weekly Activity</h3>
-                            <span className="badge badge-info">Last 7 days</span>
-                        </div>
-                        <ResponsiveContainer width="100%" height={240}>
-                            <AreaChart data={activityData}>
-                                <defs>
-                                    <linearGradient id="colorExams" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#818cf8" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-                                <YAxis stroke="#64748b" fontSize={12} />
-                                <Tooltip contentStyle={{ background: '#1a1a3e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9', fontSize: 13 }} />
-                                <Area type="monotone" dataKey="students" stroke="#22d3ee" fill="url(#colorStudents)" strokeWidth={2} />
-                                <Area type="monotone" dataKey="exams" stroke="#818cf8" fill="url(#colorExams)" strokeWidth={2} />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                {/* Your Exams */}
+                <div className="glass" style={{ overflow: 'hidden' }}>
+                    <div className="table-top">
+                        <h3>Your Exams ({exams.length})</h3>
                     </div>
-
-                    <div className="chart-card glass">
-                        <div className="chart-header">
-                            <h3>Violations Breakdown</h3>
-                            <span className="badge badge-danger">105 total</span>
-                        </div>
-                        <div className="pie-container">
-                            <ResponsiveContainer width="100%" height={200}>
-                                <PieChart>
-                                    <Pie data={violationData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
-                                        {violationData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                                    </Pie>
-                                    <Tooltip contentStyle={{ background: '#1a1a3e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9', fontSize: 13 }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                            <div className="pie-legend">
-                                {violationData.map((v, i) => (
-                                    <div key={i} className="legend-item">
-                                        <span className="legend-dot" style={{ background: v.color }}></span>
-                                        <span>{v.name}</span>
-                                        <strong>{v.value}</strong>
-                                    </div>
-                                ))}
+                    {exams.length === 0 ? (
+                        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+                            <ClipboardList size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
+                            <p>No exams yet. Create your first exam!</p>
+                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
+                                <Link to="/teacher/upload" className="btn btn-primary btn-sm"><FileUp size={14} /> Upload PDF</Link>
+                                <Link to="/teacher/exam-builder" className="btn btn-secondary btn-sm"><PenTool size={14} /> Create Manually</Link>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Recent Exams Table */}
-                <div className="glass" style={{ marginTop: 20, overflow: 'hidden' }}>
-                    <div className="table-top">
-                        <h3>Recent Examinations</h3>
-                        <Link to="/teacher/analytics" className="btn btn-sm btn-secondary">View All <ChevronRight size={14} /></Link>
-                    </div>
-                    <div className="table-responsive">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Exam Title</th>
-                                    <th>Students</th>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Avg Score</th>
-                                    <th>Violations</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {recentExams.map(ex => (
-                                    <tr key={ex.id}>
-                                        <td><strong>{ex.title}</strong></td>
-                                        <td>{ex.students}</td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>{ex.date}</td>
-                                        <td>
-                                            <span className={`badge ${ex.status === 'Completed' ? 'badge-success' : ex.status === 'Active' ? 'badge-warning' : 'badge-info'}`}>
-                                                {ex.status}
-                                            </span>
-                                        </td>
-                                        <td>{ex.avgScore ? `${ex.avgScore}%` : '—'}</td>
-                                        <td>
-                                            {ex.violations > 0 ? (
-                                                <span className="badge badge-danger">{ex.violations} <AlertTriangle size={10} /></span>
-                                            ) : '—'}
-                                        </td>
-                                        <td><button className="btn btn-sm btn-secondary"><Eye size={14} /></button></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* ========== CHEATING REPORTS ========== */}
-                <div id="cheating-reports" className="glass" style={{ marginTop: 20, overflow: 'hidden', borderColor: cheatingReports.length > 0 ? 'rgba(239,68,68,0.2)' : undefined }}>
-                    <div className="table-top">
-                        <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Shield size={18} color="var(--danger-400)" />
-                            🚨 Cheating Reports
-                            {cheatingReports.length > 0 && (
-                                <span className="badge badge-danger">{cheatingReports.length} reports</span>
-                            )}
-                        </h3>
-                    </div>
-
-                    {cheatingReports.length === 0 ? (
-                        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                            <Shield size={36} style={{ opacity: 0.3, marginBottom: 8 }} />
-                            <p>No cheating reports yet. All students are following the rules! ✅</p>
                         </div>
                     ) : (
                         <div className="table-responsive">
                             <table className="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Student</th>
-                                        <th>Severity</th>
-                                        <th>Violations</th>
-                                        <th>Reason</th>
-                                        <th>Action Taken</th>
-                                        <th>Time</th>
+                                        <th>Exam</th>
+                                        <th>Code</th>
+                                        <th>Questions</th>
+                                        <th>Submissions</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {cheatingReports.map(report => {
-                                        const examData = exams.find(e => e.id === report.examId)
-                                        return (
-                                            <tr key={report.id} style={{
-                                                background: report.severity === 'Critical'
-                                                    ? 'rgba(239,68,68,0.04)'
-                                                    : report.severity === 'High'
-                                                        ? 'rgba(245,158,11,0.04)' : undefined
-                                            }}>
-                                                <td>
-                                                    <div>
-                                                        <strong>{report.studentName}</strong>
-                                                        <br />
-                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                            {examData?.title || 'Unknown Exam'}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span className={`badge ${report.severity === 'Critical' ? 'badge-danger' :
-                                                        report.severity === 'High' ? 'badge-warning' : 'badge-info'
-                                                        }`}>
-                                                        {report.severity === 'Critical' ? '🔴' : report.severity === 'High' ? '🟠' : '🟡'} {report.severity}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <strong style={{ color: 'var(--danger-400)', fontSize: '1.05rem' }}>
-                                                        {report.violations}
-                                                    </strong>
-                                                </td>
-                                                <td style={{ maxWidth: 250, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                                                    {report.reason}
-                                                </td>
-                                                <td>
-                                                    <span style={{
-                                                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                                                        color: 'var(--danger-400)', fontWeight: 600, fontSize: '0.82rem'
-                                                    }}>
-                                                        <XCircle size={14} /> {report.action}
-                                                    </span>
-                                                </td>
-                                                <td style={{ fontSize: '0.82rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                                                    {new Date(report.reportedAt).toLocaleString()}
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
+                                    {exams.map(e => (
+                                        <tr key={e.id}>
+                                            <td><strong>{e.title}</strong></td>
+                                            <td><code style={{ background: 'var(--primary-50)', color: 'var(--primary-500)', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>{e.code}</code></td>
+                                            <td>{e.questions?.length || 0}</td>
+                                            <td>{e.submissions?.length || 0}</td>
+                                            <td>
+                                                <span className={`badge ${e.status === 'Published' ? 'badge-success' : 'badge-warning'}`}>
+                                                    {e.status}
+                                                </span>
+                                            </td>
+                                            <td style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                                                {new Date(e.createdAt).toLocaleDateString()}
+                                            </td>
+                                            <td>
+                                                {e.status === 'Published' && (
+                                                    <Link to={`/teacher/published/${e.id}`} className="btn btn-sm btn-primary">
+                                                        <Eye size={14} /> View
+                                                    </Link>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
                     )}
                 </div>
+
+                {/* Cheating Reports */}
+                {cheatingReports.length > 0 && (
+                    <div className="glass" style={{ marginTop: 20, overflow: 'hidden' }}>
+                        <div className="table-top">
+                            <h3>⚠️ Cheating Reports ({cheatingReports.length})</h3>
+                        </div>
+                        <div className="table-responsive">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Reason</th>
+                                        <th>Violations</th>
+                                        <th>Severity</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {cheatingReports.map(r => (
+                                        <tr key={r.id}>
+                                            <td><strong>{r.studentName}</strong></td>
+                                            <td>{r.reason}</td>
+                                            <td>{r.violations}</td>
+                                            <td>
+                                                <span className={`badge ${r.severity === 'Critical' ? 'badge-danger' : r.severity === 'High' ? 'badge-warning' : 'badge-info'}`}>
+                                                    {r.severity}
+                                                </span>
+                                            </td>
+                                            <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                                                {new Date(r.reportedAt).toLocaleString()}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     )
 }
-

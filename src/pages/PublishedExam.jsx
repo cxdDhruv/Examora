@@ -80,7 +80,7 @@ export default function PublishedExam() {
     if (!exam) {
         return (
             <div className="page-wrapper">
-                <Navbar user={{ name: 'Dhruv Patel', role: 'teacher' }} />
+                <Navbar />
                 <Sidebar role="teacher" />
                 <main className="main-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div className="glass" style={{ padding: 40, textAlign: 'center' }}>
@@ -110,7 +110,7 @@ export default function PublishedExam() {
 
     return (
         <div className="page-wrapper">
-            <Navbar user={{ name: 'Dhruv Patel', role: 'teacher' }} />
+            <Navbar />
             <Sidebar role="teacher" />
             <main className="main-content">
                 <button className="btn btn-secondary" onClick={() => navigate('/teacher')} style={{ marginBottom: 16 }}>

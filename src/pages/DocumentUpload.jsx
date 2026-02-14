@@ -257,7 +257,7 @@ export default function DocumentUpload() {
 
     return (
         <div className="page-wrapper">
-            <Navbar user={{ name: 'Dhruv Patel', role: 'teacher' }} />
+            <Navbar />
             <Sidebar role="teacher" />
             <main className="main-content">
                 <div className="page-header">
