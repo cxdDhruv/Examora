@@ -6,7 +6,7 @@ import Sidebar from '../components/Sidebar'
 import { useExam } from '../context/ExamContext'
 import {
     Copy, CheckCircle, Share2, Download, ArrowLeft,
-    Clock, FileText, Shield, Users, CloudUpload, ScanLine, AlertTriangle
+    Clock, FileText, Shield, Users, CloudUpload, ScanLine, AlertTriangle, Ban
 } from 'lucide-react'
 // import { jsPDF } from 'jspdf'
 // import 'jspdf-autotable'
@@ -15,7 +15,7 @@ import './Dashboard.css'
 export default function PublishedExam() {
     const { examId } = useParams()
     const navigate = useNavigate()
-    const { getExamById, exams } = useExam()
+    const { getExamById, exams, cancelStudentExam } = useExam()
     const [copied, setCopied] = useState(false)
     const [exporting, setExporting] = useState(false)
 
@@ -326,11 +326,15 @@ export default function PublishedExam() {
                                                 <th>Score</th>
                                                 <th>Status</th>
                                                 <th>Submitted</th>
+                                                <th>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {exam.submissions.map((sub, i) => (
-                                                <tr key={i}>
+                                                <tr key={i} style={
+                                                    sub.status === 'Cancelled' ? { opacity: 0.6, background: '#f5f5f5' } :
+                                                        sub.violations > 0 ? { background: '#fff0f0', borderLeft: '3px solid var(--danger-500)' } : {}
+                                                }>
                                                     <td>
                                                         <strong>{sub.studentInfo?.name || sub.studentName}</strong>
                                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -349,18 +353,39 @@ export default function PublishedExam() {
                                                     </td>
                                                     <td>
                                                         <span className={`badge ${sub.status === 'Clean' ? 'badge-success' :
-                                                            sub.status === 'Flagged' ? 'badge-warning' : 'badge-danger'
+                                                            sub.status === 'Cancelled' ? 'badge-danger' :
+                                                                'badge-warning'
                                                             }`}>
                                                             {sub.status}
                                                         </span>
                                                         {sub.violations > 0 && (
-                                                            <span style={{ fontSize: '0.75rem', color: 'var(--danger-400)', display: 'block' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--danger-500)', display: 'block', fontWeight: 600 }}>
                                                                 {sub.violations} violations
                                                             </span>
+                                                        )}
+                                                        {sub.cancelReason && (
+                                                            <div style={{ fontSize: '0.7rem', color: 'var(--danger-500)', marginTop: 2 }}>
+                                                                {sub.cancelReason}
+                                                            </div>
                                                         )}
                                                     </td>
                                                     <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                                         {new Date(sub.submittedAt).toLocaleTimeString()}
+                                                    </td>
+                                                    <td>
+                                                        {sub.status !== 'Cancelled' && (
+                                                            <button
+                                                                className="btn btn-sm btn-danger"
+                                                                onClick={() => {
+                                                                    if (window.confirm(`Are you sure you want to CANCEL the exam for ${sub.studentInfo?.name || 'this student'}?\n\nThis will maintain their record but mark it invalid.`)) {
+                                                                        cancelStudentExam(exam.id, sub.studentInfo, 'Teacher Manual Cancellation', sub.violations || 0)
+                                                                    }
+                                                                }}
+                                                                title="Cancel this student's exam"
+                                                            >
+                                                                <Ban size={14} /> Cancel
+                                                            </button>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
