@@ -196,8 +196,8 @@ export default function TeacherDashboard() {
                                             <td>
                                                 <div style={{ display: 'flex', gap: 6 }}>
                                                     {e.status === 'Published' && (
-                                                        <Link to={`/teacher/published/${e.id}`} className="btn btn-sm btn-primary">
-                                                            <Eye size={14} />
+                                                        <Link to={`/teacher/published/${e.id}`} className="btn btn-sm btn-primary" title="View Results & Details">
+                                                            <Eye size={14} /> Results
                                                         </Link>
                                                     )}
                                                     <button onClick={() => handleDuplicate(e.id)} className="btn btn-sm btn-secondary" title="Duplicate Exam">
