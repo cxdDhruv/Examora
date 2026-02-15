@@ -5,8 +5,8 @@ import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
 import { useExam } from '../context/ExamContext'
 import {
-    QrCode, Copy, CheckCircle, Share2, Download, ArrowLeft,
-    Clock, FileText, Shield, Users, CloudUpload
+    Copy, CheckCircle, Share2, Download, ArrowLeft,
+    Clock, FileText, Shield, Users, CloudUpload, ScanLine
 } from 'lucide-react'
 // import { jsPDF } from 'jspdf'
 // import 'jspdf-autotable'
@@ -47,15 +47,56 @@ export default function PublishedExam() {
     }
 
     // ========== PDF Report Download ==========
-    const downloadReportPDF = () => {
-        alert('PDF Report feature is temporarily disabled for maintenance. Please use CSV export.')
-        /*
+    const downloadReportPDF = async () => {
         if (!exam.submissions || exam.submissions.length === 0) return
 
-        const doc = new jsPDF()
-        // ... (rest of logic commented out)
-        doc.save(`${exam.title.replace(/\s+/g, '_')}_StudentResults.pdf`)
-        */
+        try {
+            // Dynamic import to avoid initial bundle crash
+            const { jsPDF } = await import('jspdf')
+            await import('jspdf-autotable')
+
+            const doc = new jsPDF()
+
+            // Title
+            doc.setFontSize(20)
+            doc.setTextColor(40, 40, 40)
+            doc.text(`Exam Results: ${exam.title}`, 14, 20)
+
+            doc.setFontSize(11)
+            doc.setTextColor(100, 100, 100)
+            doc.text(`Code: ${exam.code} | Date: ${new Date().toLocaleDateString()}`, 14, 28)
+
+            const tableColumn = ["Student Name", "Roll No", "Score", "Total", "Status", "Violations", "Submitted"]
+            const tableRows = []
+
+            exam.submissions.forEach(sub => {
+                const row = [
+                    sub.studentInfo?.name || sub.studentName || 'Unknown',
+                    sub.studentInfo?.rollNo || '-',
+                    sub.score !== undefined ? sub.score : '-',
+                    exam.totalPoints,
+                    sub.status,
+                    sub.violations || 0,
+                    sub.submittedAt ? new Date(sub.submittedAt).toLocaleTimeString() : '-'
+                ]
+                tableRows.push(row)
+            })
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 35,
+                theme: 'grid',
+                headStyles: { fillColor: [99, 102, 241], textColor: 255 },
+                styles: { fontSize: 10, cellPadding: 3 },
+                alternateRowStyles: { fillColor: [248, 250, 252] }
+            })
+
+            doc.save(`${exam.title.replace(/\s+/g, '_')}_StudentResults.pdf`)
+        } catch (error) {
+            console.error("Failed to load PDF generator:", error)
+            alert("Failed to generate PDF. Please try again or use CSV export.")
+        }
     }
 
     // ========== Google Drive Export ==========
@@ -159,7 +200,7 @@ export default function PublishedExam() {
                     {/* QR Code Section */}
                     <div className="glass" style={{ padding: 32, textAlign: 'center' }}>
                         <h3 style={{ marginBottom: 20, fontSize: '1.1rem', fontWeight: 700 }}>
-                            <QrCode size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />
+                            <ScanLine size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />
                             Scan QR Code
                         </h3>
                         <div style={{ background: '#fff', padding: 24, borderRadius: 16, display: 'inline-block', marginBottom: 16 }}>

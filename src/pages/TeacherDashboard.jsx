@@ -42,13 +42,56 @@ export default function TeacherDashboard() {
         }
     }
 
-    const handleExportPDF = (exam) => {
-        alert('PDF Export feature is temporarily disabled for maintenance.')
-        /*
-        const doc = new jsPDF()
-        // ...
-        doc.save(`${exam.title.replace(/\s+/g, '_')}_QuestionPaper.pdf`)
-        */
+    const handleExportPDF = async (exam) => {
+        try {
+            // Dynamic import
+            const { jsPDF } = await import('jspdf')
+            await import('jspdf-autotable')
+
+            const doc = new jsPDF()
+
+            // Title
+            doc.setFontSize(22)
+            doc.setTextColor(40, 40, 40)
+            doc.text(exam.title, 20, 20)
+
+            doc.setFontSize(12)
+            doc.setTextColor(100, 100, 100)
+            doc.text(`Code: ${exam.code} | Duration: ${exam.duration} mins | Points: ${exam.totalPoints}`, 20, 30)
+
+            let y = 45
+
+            exam.questions.forEach((q, i) => {
+                if (y > 270) {
+                    doc.addPage()
+                    y = 20
+                }
+
+                doc.setFontSize(14)
+                doc.setTextColor(0, 0, 0)
+                const questionText = doc.splitTextToSize(`${i + 1}. ${q.text} (${q.points} pt)`, 170)
+                doc.text(questionText, 20, y)
+                y += questionText.length * 7
+
+                if (q.type === 'MCQ' || q.type === 'True/False') {
+                    doc.setFontSize(12)
+                    doc.setTextColor(80, 80, 80)
+                    q.options.forEach((opt, j) => {
+                        doc.text(`   ${String.fromCharCode(65 + j)}) ${opt}`, 20, y + (j * 6))
+                    })
+                    y += (q.options.length * 6) + 10
+                } else if (q.type === 'Fill Blank') {
+                    y += 10
+                } else {
+                    y += 25 // Space for short answer
+                }
+            })
+
+            doc.save(`${exam.title.replace(/\s+/g, '_')}_QuestionPaper.pdf`)
+        } catch (error) {
+            console.error("Failed to generate PDF:", error)
+            alert("Failed to generate PDF. Please try again.")
+        }
     }
 
     return (
