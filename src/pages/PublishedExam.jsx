@@ -5,10 +5,10 @@ import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
 import { useExam } from '../context/ExamContext'
 import {
-    QrCode, Copy, CheckCircle, Share2, Download, ArrowLeft,
+    Qrcode, Copy, CheckCircle, Share2, Download, ArrowLeft,
     Clock, FileText, Shield, Users, CloudUpload
 } from 'lucide-react'
-import jsPDF from 'jspdf'
+import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 import './Dashboard.css'
 

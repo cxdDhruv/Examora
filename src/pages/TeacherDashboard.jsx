@@ -9,7 +9,7 @@ import {
     Clock, AlertTriangle, BookOpen, Plus, ChevronRight, Eye,
     Ban, Shield, XCircle, PenTool, Copy, Download
 } from 'lucide-react'
-import jsPDF from 'jspdf'
+import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 import './Dashboard.css'
 
