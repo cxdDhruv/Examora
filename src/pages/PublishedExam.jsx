@@ -20,6 +20,49 @@ export default function PublishedExam() {
     const [copied, setCopied] = useState(false)
     const [viewingLogs, setViewingLogs] = useState(null)
     const [exporting, setExporting] = useState(false)
+    const [liveSubmissions, setLiveSubmissions] = useState([])
+
+    // Listen for real-time updates from Firebase
+    useEffect(() => {
+        let unsubscribe = () => { }
+        const setupListener = async () => {
+            try {
+                const { db } = await import('../config/firebase')
+                const { collection, query, where, onSnapshot } = await import('firebase/firestore')
+                const q = query(collection(db, "submissions"), where("examId", "==", parseInt(examId)))
+
+                unsubscribe = onSnapshot(q, (snapshot) => {
+                    const subs = []
+                    snapshot.forEach((doc) => {
+                        subs.push(doc.data())
+                    })
+                    if (subs.length > 0) {
+                        setLiveSubmissions(subs)
+                        // Optional: Merge with local if needed, but for "Results" view, live is better
+                        // Actually, let's update the context/local state so the table renders it
+                        // importSubmission(parseInt(examId), subs) // Be careful of loops
+                    }
+                })
+            } catch (err) {
+                console.log("Firebase listener error (likely not configured):", err)
+            }
+        }
+        setupListener()
+        return () => unsubscribe()
+    }, [examId])
+
+    // Merge live submissions with local ones for display
+    const displaySubmissions = useMemo(() => {
+        const local = exam?.submissions || []
+        // Combine by student rollNo or email to avoid duplicates
+        const combined = [...local]
+        liveSubmissions.forEach(live => {
+            if (!combined.some(l => l.studentInfo?.rollNo === live.studentInfo?.rollNo)) {
+                combined.push(live)
+            }
+        })
+        return combined
+    }, [exam?.submissions, liveSubmissions])
 
     // ========== CSV Download ==========
     const downloadCSV = () => {
@@ -393,8 +436,15 @@ export default function PublishedExam() {
                                     </div>
                                 )}
                             </div>
-                            {(!exam.submissions || exam.submissions.length === 0) ? (
-                                <p style={{ color: 'var(--text-muted)' }}>No submissions yet.</p>
+                            {(!import.meta.env.VITE_FIREBASE_API_KEY) && (
+                                <div style={{ padding: '12px 16px', marginBottom: 16, background: '#fff3cd', color: '#856404', borderRadius: 8, border: '1px solid #ffeeba', fontSize: '0.9rem' }}>
+                                    <strong>⚠️ Real-time results not configured</strong><br />
+                                    To see student results instantly across devices, you must configure Firebase in your project settings.
+                                    Currently showing local submissions only.
+                                </div>
+                            )}
+                            {displaySubmissions.length === 0 ? (
+                                <p style={{ color: 'var(--text-muted)' }}>No submissions yet. (If students have submitted, ensure Firebase is configured or use "Import Results")</p>
                             ) : (
                                 <div className="table-responsive">
                                     <table className="data-table">
@@ -410,7 +460,7 @@ export default function PublishedExam() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {exam.submissions.map((sub, i) => (
+                                            {displaySubmissions.map((sub, i) => (
                                                 <tr key={i} style={
                                                     sub.status === 'Cancelled' ? { opacity: 0.6, background: '#f5f5f5' } :
                                                         sub.violations > 0 ? { background: '#fff0f0', borderLeft: '3px solid var(--danger-500)' } : {}

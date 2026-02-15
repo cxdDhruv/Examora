@@ -272,23 +272,46 @@ export function ExamProvider({ children }) {
         setExams(prev => prev.map(e => e.id === examId ? { ...e, ...updates } : e))
     }
 
-    const submitExamAnswers = (examId, answers, studentInfo, violations) => {
+    const submitExamAnswers = async (examId, answers, studentInfo, violations) => {
+        const submission = {
+            studentInfo,
+            answers,
+            violations,
+            submittedAt: new Date().toISOString(),
+            status: violations > 0 ? 'Flagged' : 'Clean',
+            score: calculateScore(exams.find(e => e.id === examId)?.questions || [], answers),
+            examId
+        }
+
+        // 1. Local State Update (optimistic)
         setExams(prev => prev.map(e => {
             if (e.id === examId) {
                 return {
                     ...e,
-                    submissions: [...(e.submissions || []), {
-                        studentInfo, // Store full object
-                        answers,
-                        violations,
-                        submittedAt: new Date().toISOString(),
-                        status: violations > 0 ? 'Flagged' : 'Clean',
-                        score: calculateScore(e.questions, answers)
-                    }]
+                    submissions: [...(e.submissions || []), submission]
                 }
             }
             return e
         }))
+
+        // 2. Firebase Sync
+        try {
+            const { db } = await import('../config/firebase')
+            if (db) {
+                const { collection, addDoc, doc, updateDoc, arrayUnion } = await import('firebase/firestore')
+                // We'll store submissions in a subcollection or main collection
+                // For simplicity/scalability: store in 'submissions' collection
+                await addDoc(collection(db, 'submissions'), submission)
+
+                // Also update the exam document if it exists (optional, for summary)
+                // const examRef = doc(db, 'exams', String(examId))
+                // await updateDoc(examRef, { submissions: arrayUnion(submission) })
+            }
+        } catch (err) {
+            console.error("Firebase Sync Failed:", err)
+            // We don't block the UI, just log it. 
+            // In a real app, we'd queue this for retry.
+        }
     }
 
     const calculateScore = (questions, answers) => {
