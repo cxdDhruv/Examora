@@ -17,6 +17,7 @@ export default function PublishedExam() {
     const navigate = useNavigate()
     const { getExamById, exams, cancelStudentExam, importSubmission } = useExam()
     const [copied, setCopied] = useState(false)
+    const [viewingLogs, setViewingLogs] = useState(null)
     const [exporting, setExporting] = useState(false)
 
     // ========== CSV Download ==========
@@ -104,14 +105,29 @@ export default function PublishedExam() {
         setExporting(true)
         try {
             // Generate CSV content
-            const headers = ['Name', 'Email', 'Roll No', 'Section', 'Batch', 'Branch', 'Score', 'Violations', 'Status', 'Submitted At']
-            const rows = (exam.submissions || []).map(sub => [
-                sub.studentInfo?.name || '', sub.studentInfo?.email || '',
-                sub.studentInfo?.rollNo || '', sub.studentInfo?.section || '',
-                sub.studentInfo?.batch || '', sub.studentInfo?.branch || '',
-                sub.score !== undefined ? sub.score : '', sub.violations || 0,
-                sub.status || '', sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : '',
-            ])
+            // Generate CSV content
+            const headers = ['Name', 'Email', 'Roll No', 'Section', 'Batch', 'Branch', 'Score', 'Status', 'Violations Count', 'Violation Details', 'Cancelled By', 'Submitted At']
+            const rows = (exam.submissions || []).map(sub => {
+                // Format violation logs into a readable string
+                const violationDetails = sub.violationLogs
+                    ? sub.violationLogs.map(v => `${v.reason} (${v.time})`).join('; ')
+                    : (sub.violations > 0 ? 'Violations recorded but no detailed logs available' : 'None')
+
+                return [
+                    sub.studentInfo?.name || '',
+                    sub.studentInfo?.email || '',
+                    sub.studentInfo?.rollNo || '',
+                    sub.studentInfo?.section || '',
+                    sub.studentInfo?.batch || '',
+                    sub.studentInfo?.branch || '',
+                    sub.score !== undefined ? sub.score : '',
+                    sub.status || '',
+                    sub.violations || 0,
+                    `"${violationDetails}"`, // Quote to handle commas in text
+                    sub.cancelledBy || (sub.status === 'Cancelled' ? 'Teacher' : ''),
+                    sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : '',
+                ]
+            })
             const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
 
             // Use Google Drive API (requires gapi loaded)
@@ -398,9 +414,18 @@ export default function PublishedExam() {
                                                             {sub.status}
                                                         </span>
                                                         {sub.violations > 0 && (
-                                                            <span style={{ fontSize: '0.75rem', color: 'var(--danger-500)', display: 'block', fontWeight: 600 }}>
-                                                                {sub.violations} violations
-                                                            </span>
+                                                            <div>
+                                                                <span style={{ fontSize: '0.75rem', color: 'var(--danger-500)', display: 'block', fontWeight: 600 }}>
+                                                                    {sub.violations} violations
+                                                                </span>
+                                                                <button
+                                                                    className="btn-link"
+                                                                    style={{ fontSize: '0.75rem', color: 'var(--primary-500)', textDecoration: 'underline', padding: 0, marginTop: 4, background: 'none', border: 'none', cursor: 'pointer' }}
+                                                                    onClick={() => setViewingLogs(sub)}
+                                                                >
+                                                                    View Logs
+                                                                </button>
+                                                            </div>
                                                         )}
                                                         {sub.cancelReason && (
                                                             <div style={{ fontSize: '0.7rem', color: 'var(--danger-500)', marginTop: 2 }}>
@@ -457,6 +482,46 @@ export default function PublishedExam() {
                     </div>
                 </div>
             </main>
+            {viewingLogs && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }} onClick={() => setViewingLogs(null)}>
+                    <div style={{
+                        background: 'var(--bg-secondary)', padding: 24, borderRadius: 12,
+                        width: '90%', maxWidth: 500, maxHeight: '80vh', overflowY: 'auto',
+                        border: '1px solid var(--border-subtle)'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Violation Logs</h3>
+                            <button className="btn btn-sm btn-secondary" onClick={() => setViewingLogs(null)}>Close</button>
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                            <strong>Student:</strong> {viewingLogs.studentInfo?.name} <br />
+                            <strong>Status:</strong> {viewingLogs.status}
+                        </div>
+
+                        {viewingLogs.violationLogs && viewingLogs.violationLogs.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {viewingLogs.violationLogs.map((log, i) => (
+                                    <div key={i} style={{
+                                        padding: 12, background: 'rgba(239,68,68,0.1)',
+                                        borderLeft: '4px solid var(--danger-500)', borderRadius: 4
+                                    }}>
+                                        <div style={{ fontWeight: 600, color: 'var(--danger-500)' }}>{log.reason}</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                                            Time: {log.time}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p style={{ color: 'var(--text-muted)' }}>No detailed logs available for this submission.</p>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

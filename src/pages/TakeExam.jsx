@@ -380,6 +380,7 @@ export default function TakeExam() {
             studentInfo,
             answers,
             violations: violationCount,
+            violationLogs: violations, // detailed logs
             score: Object.keys(answers).reduce((total, qId) => {
                 const q = examQuestions.find(q => q.id == qId)
                 if (q && (q.type === 'MCQ' || q.type === 'True/False')) {
@@ -388,7 +389,9 @@ export default function TakeExam() {
                 return total
             }, 0),
             submittedAt: new Date().toISOString(),
-            status: violationCount > 0 ? 'Flagged' : 'Clean'
+            status: violationCount > 0 ? 'Flagged' : 'Clean',
+            cancelReason: cancelReason || null, // Include if cancelled
+            cancelledBy: cancelled ? 'System' : null
         }
 
         const blob = new Blob([JSON.stringify(resultData, null, 2)], { type: 'application/json' })
