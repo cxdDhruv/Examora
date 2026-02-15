@@ -24,31 +24,47 @@ export default function JoinExam() {
     // Decode exam data from URL if present (encoded by teacher's PublishedExam page)
     const urlExamData = useMemo(() => {
         try {
-            // Hash looks like: #/join/CODE?d=BASE64DATA
+            // Case 1: The code parameter itself is the base64 data (from PublishedExam.jsx)
+            if (urlCode && urlCode.length > 20) {
+                // PublishedExam uses: btoa(encodeURIComponent(json))
+                // So we reverse: decodeURIComponent(atob(urlCode))
+                const decoded = decodeURIComponent(atob(urlCode))
+                return JSON.parse(decoded)
+            }
+
+            // Case 2: Query param ?d= (Legacy or specific cases)
             const hashPart = location.search || ''
             const params = new URLSearchParams(hashPart)
             const d = params.get('d')
             if (d) {
-                const decoded = decodeURIComponent(escape(atob(d)))
+                const decoded = decodeURIComponent(atob(d))
                 return JSON.parse(decoded)
             }
         } catch (e) {
             console.warn('Could not decode exam from URL:', e)
         }
         return null
-    }, [location.search])
+    }, [urlCode, location.search])
 
     // Try context first, then URL-embedded data
     const exam = useMemo(() => {
-        if (code) {
+        // If we successfully decoded data from URL, use it
+        if (urlExamData) return urlExamData
+
+        // Otherwise check if code corresponds to a local exam (Teacher testing on same device)
+        if (code && code.length <= 8) {
             const fromContext = getExamByCode(code.toUpperCase())
             if (fromContext) return fromContext
         }
-        if (urlExamData) return urlExamData
         return null
     }, [code, urlExamData, getExamByCode])
 
-    const [step, setStep] = useState((urlCode && (urlExamData || getExamByCode(urlCode?.toUpperCase()))) ? 'info' : (urlCode ? 'info' : 'code'))
+    const [step, setStep] = useState(() => {
+        if (urlExamData) return 'info'
+        // If validation fails for short code, we'll handle it in useEffect or let user click
+        if (urlCode && urlCode.length <= 8) return 'info'
+        return 'code'
+    })
 
     const handleCodeSubmit = (e) => {
         e.preventDefault()
@@ -56,6 +72,22 @@ export default function JoinExam() {
             setError('Please enter an exam code.')
             return
         }
+        // If it's a long code (pasted data link), try to decode it directly
+        if (code.length > 20) {
+            try {
+                const decoded = decodeURIComponent(atob(code))
+                const data = JSON.parse(decoded)
+                if (data && data.id) {
+                    // It's valid data, just redirect or reload with this code in URL
+                    // Or better, just set urlExamData logic to handle it if we put it in state? 
+                    // Actually, if they paste it, we can't easily put it in URL without nav.
+                    // Let's just tell them to use the link.
+                }
+            } catch (e) { }
+            setError('Please use the full link provided by your teacher.')
+            return
+        }
+
         const found = getExamByCode(code.toUpperCase())
         if (!found) {
             setError('Invalid exam code. Please use the full link shared by your teacher.')
