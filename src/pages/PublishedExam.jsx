@@ -6,7 +6,7 @@ import Sidebar from '../components/Sidebar'
 import { useExam } from '../context/ExamContext'
 import {
     Copy, CheckCircle, Share2, Download, ArrowLeft,
-    Clock, FileText, Shield, Users, CloudUpload, ScanLine
+    Clock, FileText, Shield, Users, CloudUpload, ScanLine, AlertTriangle
 } from 'lucide-react'
 // import { jsPDF } from 'jspdf'
 // import 'jspdf-autotable'
@@ -203,43 +203,56 @@ export default function PublishedExam() {
                             <ScanLine size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />
                             Scan QR Code
                         </h3>
-                        <div style={{ background: '#fff', padding: 24, borderRadius: 16, display: 'inline-block', marginBottom: 16 }}>
-                            <QRCodeSVG
-                                value={joinUrl}
-                                size={220}
-                                level="H"
-                                includeMargin
-                                fgColor="#1a1a2e"
-                                bgColor="#ffffff"
-                            />
-                        </div>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-                            Students scan this with their phone camera to open the exam
-                        </p>
-                        <button className="btn btn-secondary" onClick={() => {
-                            // Download QR as image
-                            const svg = document.querySelector('.glass svg')
-                            if (svg) {
-                                const canvas = document.createElement('canvas')
-                                canvas.width = 300
-                                canvas.height = 300
-                                const ctx = canvas.getContext('2d')
-                                const data = new XMLSerializer().serializeToString(svg)
-                                const img = new Image()
-                                img.onload = () => {
-                                    ctx.fillStyle = '#fff'
-                                    ctx.fillRect(0, 0, 300, 300)
-                                    ctx.drawImage(img, 0, 0, 300, 300)
-                                    const a = document.createElement('a')
-                                    a.download = `${exam.code}-qr.png`
-                                    a.href = canvas.toDataURL()
-                                    a.click()
-                                }
-                                img.src = 'data:image/svg+xml;base64,' + btoa(data)
-                            }
-                        }}>
-                            <Download size={16} /> Download QR
-                        </button>
+
+                        {joinUrl.length > 2000 ? (
+                            <div style={{ padding: 20, background: '#fff3cd', color: '#856404', borderRadius: 8, marginBottom: 16 }}>
+                                <AlertTriangle size={24} style={{ marginBottom: 8 }} />
+                                <p style={{ fontSize: '0.9rem', margin: 0 }}>
+                                    <strong>Exam too large for QR Code</strong><br />
+                                    Please share the link directly.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ background: '#fff', padding: 24, borderRadius: 16, display: 'inline-block', marginBottom: 16 }}>
+                                    <QRCodeSVG
+                                        value={joinUrl}
+                                        size={220}
+                                        level="M"
+                                        includeMargin
+                                        fgColor="#1a1a2e"
+                                        bgColor="#ffffff"
+                                    />
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
+                                    Students scan this with their phone camera to open the exam
+                                </p>
+                                <button className="btn btn-secondary" onClick={() => {
+                                    // Download QR as image
+                                    const svg = document.querySelector('.glass svg')
+                                    if (svg) {
+                                        const canvas = document.createElement('canvas')
+                                        canvas.width = 300
+                                        canvas.height = 300
+                                        const ctx = canvas.getContext('2d')
+                                        const data = new XMLSerializer().serializeToString(svg)
+                                        const img = new Image()
+                                        img.onload = () => {
+                                            ctx.fillStyle = '#fff'
+                                            ctx.fillRect(0, 0, 300, 300)
+                                            ctx.drawImage(img, 0, 0, 300, 300)
+                                            const a = document.createElement('a')
+                                            a.download = `${exam.code}-qr.png`
+                                            a.href = canvas.toDataURL()
+                                            a.click()
+                                        }
+                                        img.src = 'data:image/svg+xml;base64,' + btoa(data)
+                                    }
+                                }}>
+                                    <Download size={16} /> Download QR
+                                </button>
+                            </>
+                        )}
                     </div>
 
                     {/* Exam Code & Link */}
