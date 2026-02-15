@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import Navbar from '../components/Navbar'
