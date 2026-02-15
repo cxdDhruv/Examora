@@ -15,7 +15,7 @@ import './Dashboard.css'
 export default function PublishedExam() {
     const { examId } = useParams()
     const navigate = useNavigate()
-    const { getExamById, exams, cancelStudentExam } = useExam()
+    const { getExamById, exams, cancelStudentExam, importSubmission } = useExam()
     const [copied, setCopied] = useState(false)
     const [exporting, setExporting] = useState(false)
 
@@ -150,19 +150,25 @@ export default function PublishedExam() {
         )
     }
 
-    // Encode exam data into the URL so students on any device can take the exam
-    const examPayload = {
-        id: exam.id,
-        title: exam.title,
-        code: exam.code,
-        questions: exam.questions,
-        duration: exam.duration,
-        totalPoints: exam.totalPoints,
-        settings: exam.settings,
-    }
-    const encodedExam = btoa(unescape(encodeURIComponent(JSON.stringify(examPayload))))
-    const basePath = import.meta.env.BASE_URL || '/'
-    const joinUrl = `${window.location.origin}${basePath}#/join/${exam.code}?d=${encodedExam}`
+    // Generate Shareable Link (Compressed)
+    const joinUrl = useMemo(() => {
+        if (!exam) return ''
+        const baseUrl = window.location.origin + window.location.pathname
+        // Create a minimal payload
+        const payload = {
+            id: exam.id,
+            title: exam.title,
+            questions: exam.questions,
+            duration: exam.duration,
+            settings: exam.settings
+        }
+        // Use LZString to compress (we need to add this library)
+        // For now, we'll try to strip unnecessary data if we can't add libraries easily
+        // But since we can't easily add libraries without npm install, let's try to minify the JSON
+        const json = JSON.stringify(payload)
+        const encoded = btoa(encodeURIComponent(json))
+        return `${baseUrl}#/join/${encoded}`
+    }, [exam])
 
     const copyLink = () => {
         navigator.clipboard.writeText(joinUrl)
@@ -299,8 +305,41 @@ export default function PublishedExam() {
                         <div className="glass" style={{ padding: 24, gridColumn: '1 / -1' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Student Submissions</h3>
-                                {exam.submissions && exam.submissions.length > 0 && (
+                                {exam.submissions && (
                                     <div style={{ display: 'flex', gap: 8 }}>
+                                        <button className="btn btn-primary btn-sm" onClick={() => document.getElementById('import-input').click()}>
+                                            <CloudUpload size={14} /> Import Results
+                                        </button>
+                                        <input
+                                            id="import-input"
+                                            type="file"
+                                            multiple
+                                            accept=".json"
+                                            style={{ display: 'none' }}
+                                            onChange={(e) => {
+                                                const files = Array.from(e.target.files)
+                                                let importedCount = 0
+                                                files.forEach(file => {
+                                                    const reader = new FileReader()
+                                                    reader.onload = (ev) => {
+                                                        try {
+                                                            const data = JSON.parse(ev.target.result)
+                                                            if (data.examId === exam.id && data.studentInfo) {
+                                                                importSubmission(exam.id, data)
+                                                                importedCount++
+                                                            }
+                                                        } catch (err) {
+                                                            console.error('Import failed for file:', file.name)
+                                                        }
+                                                    }
+                                                    reader.readAsText(file)
+                                                })
+                                                setTimeout(() => {
+                                                    alert(`Import process started for ${files.length} files. Valid submissions will appear in the table.`)
+                                                }, 500)
+                                                e.target.value = '' // Reset
+                                            }}
+                                        />
                                         <button className="btn btn-secondary btn-sm" onClick={downloadReportPDF}>
                                             <FileText size={14} /> Report PDF
                                         </button>

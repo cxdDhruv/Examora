@@ -375,24 +375,27 @@ export default function TakeExam() {
     // Calculate score for display
 
     const downloadResult = () => {
-        const resultText = `
-EXAM RESULT: ${examTitle}
-Student: ${studentInfo.name} (${studentInfo.rollNo})
-Date: ${new Date().toLocaleString()}
-----------------------------------------
-Duration: ${examDuration} mins
-Time Taken: ${Math.floor((examDuration * 60 - timeLeft) / 60)}m ${(examDuration * 60 - timeLeft) % 60}s
-Questions Answered: ${answeredCount} / ${examQuestions.length}
-Violations Detected: ${violationCount}
-----------------------------------------
-Thank you for using Examora.
-        `.trim()
+        const resultData = {
+            examId: exam.id,
+            studentInfo,
+            answers,
+            violations: violationCount,
+            score: Object.keys(answers).reduce((total, qId) => {
+                const q = examQuestions.find(q => q.id == qId)
+                if (q && (q.type === 'MCQ' || q.type === 'True/False')) {
+                    return total + (answers[qId] === q.correct ? q.points : 0)
+                }
+                return total
+            }, 0),
+            submittedAt: new Date().toISOString(),
+            status: violationCount > 0 ? 'Flagged' : 'Clean'
+        }
 
-        const blob = new Blob([resultText], { type: 'text/plain' })
+        const blob = new Blob([JSON.stringify(resultData, null, 2)], { type: 'application/json' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `${studentInfo.name}_${examTitle.replace(/\s+/g, '_')}_Result.txt`
+        a.download = `${studentInfo.rollNo}_${studentInfo.name.replace(/\s+/g, '_')}_Result.json`
         a.click()
     }
 

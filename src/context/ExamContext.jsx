@@ -342,6 +342,31 @@ export function ExamProvider({ children }) {
         }))
     }
 
+    // IMPORT SUBMISSIONS (Manual Sync)
+    const importSubmission = (examId, submissionData) => {
+        setExams(prev => prev.map(e => {
+            if (e.id === examId) {
+                // Check for duplicates based on rollNo
+                const existing = e.submissions || []
+                const isDuplicate = existing.some(s =>
+                    s.studentInfo?.rollNo === submissionData.studentInfo?.rollNo &&
+                    s.studentInfo?.name === submissionData.studentInfo?.name
+                )
+
+                if (isDuplicate) return e
+
+                return {
+                    ...e,
+                    submissions: [...existing, {
+                        ...submissionData,
+                        importedAt: new Date().toISOString()
+                    }]
+                }
+            }
+            return e
+        }))
+    }
+
     const getExamByCode = (code) => exams.find(e => e.code === code)
     const getExamById = (id) => exams.find(e => e.id === parseInt(id))
 
@@ -470,6 +495,7 @@ export function ExamProvider({ children }) {
             submitExamAnswers,
             reportCheating,
             cancelStudentExam,
+            importSubmission,
             getExamByCode,
             getExamById,
             generateQuestions,
