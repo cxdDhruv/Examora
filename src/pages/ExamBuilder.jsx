@@ -201,6 +201,7 @@ export default function ExamBuilder() {
                                                 <option>MCQ</option>
                                                 <option>True/False</option>
                                                 <option>Short Answer</option>
+                                                <option>Code</option>
                                             </select>
                                             <input type="number" className="input" value={q.points} onChange={e => updateQuestion(q.id, 'points', +e.target.value)} style={{ width: 60, padding: '4px 8px', fontSize: '0.78rem' }} min={1} />
                                             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>pts</span>
@@ -287,13 +288,14 @@ export default function ExamBuilder() {
                                         setNewQ({
                                             ...newQ,
                                             type,
-                                            options: type === 'Short Answer' ? null : type === 'True/False' ? ['True', 'False'] : ['', '', '', ''],
-                                            correct: type === 'Short Answer' ? null : 0,
+                                            options: (type === 'Short Answer' || type === 'Code') ? null : type === 'True/False' ? ['True', 'False'] : ['', '', '', ''],
+                                            correct: (type === 'Short Answer' || type === 'Code') ? null : 0,
                                         })
                                     }}>
                                         <option>MCQ</option>
                                         <option>True/False</option>
                                         <option>Short Answer</option>
+                                        <option>Code</option>
                                     </select>
                                 </div>
                                 <div className="input-group" style={{ flex: 1, minWidth: 100 }}>

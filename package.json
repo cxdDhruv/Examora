@@ -12,6 +12,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@react-oauth/google": "^0.13.4",
     "face-api.js": "^0.22.2",
     "firebase": "^12.9.0",

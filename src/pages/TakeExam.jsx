@@ -7,6 +7,7 @@ import {
     Camera, CameraOff, Wifi, Shield, Send, CheckCircle,
     XCircle, Ban, Eye, EyeOff
 } from 'lucide-react'
+import MathText from '../components/MathText'
 import './TakeExam.css'
 
 const fallbackQuestions = []
@@ -40,6 +41,23 @@ export default function TakeExam() {
 
     const [currentQ, setCurrentQ] = useState(0)
     const [answers, setAnswers] = useState({})
+    const [shuffledQuestions, setShuffledQuestions] = useState([])
+
+    // Initialize questions (shuffle if needed)
+    useEffect(() => {
+        if (examQuestions.length > 0 && shuffledQuestions.length === 0) {
+            let q = [...examQuestions]
+            if (exam?.settings?.shuffle) {
+                for (let i = q.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [q[i], q[j]] = [q[j], q[i]];
+                }
+            }
+            setShuffledQuestions(q)
+        }
+    }, [examQuestions, exam?.settings?.shuffle])
+
+    const activeQuestions = shuffledQuestions.length > 0 ? shuffledQuestions : examQuestions
     const [flagged, setFlagged] = useState(new Set())
     const [timeLeft, setTimeLeft] = useState(examDuration * 60)
     const [submitted, setSubmitted] = useState(false)
@@ -326,9 +344,9 @@ export default function TakeExam() {
         if (exam) submitExamAnswers(exam.id, answers, studentInfo, violations.length)
     }
 
-    const q = examQuestions[currentQ]
+    const q = activeQuestions[currentQ]
     const answeredCount = Object.keys(answers).length
-    const progressPct = (answeredCount / examQuestions.length) * 100
+    const progressPct = (answeredCount / activeQuestions.length) * 100
     const violationCount = violations.length
 
     // ========== RENDER STATES ==========
@@ -473,7 +491,7 @@ export default function TakeExam() {
 
                     <h4>Questions</h4>
                     <div className="nav-grid">
-                        {examQuestions.map((q, i) => (
+                        {activeQuestions.map((q, i) => (
                             <button
                                 key={q.id}
                                 className={`nav-btn ${currentQ === i ? 'current' : ''} ${answers[q.id] !== undefined ? 'answered' : ''} ${flagged.has(q.id) ? 'flagged' : ''}`}
@@ -497,13 +515,51 @@ export default function TakeExam() {
                         </button>
                     </div>
 
-                    <p className="qp-text">{q.text}</p>
-                    {q.options ? (
+                    <p className="qp-text">
+                        <MathText text={q.text} />
+                    </p>
+
+                    {q.type === 'Code' ? (
+                        <div className="code-runner">
+                            <textarea
+                                className="input"
+                                value={answers[q.id] || ''}
+                                onChange={e => setAnswers({ ...answers, [q.id]: e.target.value })}
+                                placeholder="// Write your JavaScript code here..."
+                                style={{
+                                    fontFamily: 'monospace', minHeight: 200, width: '100%',
+                                    background: '#1e1e1e', color: '#d4d4d4', border: 'none',
+                                    padding: 16, borderRadius: 8, lineHeight: 1.5
+                                }}
+                                spellCheck={false}
+                            />
+                            <div style={{ marginTop: 12 }}>
+                                <button
+                                    className="btn btn-sm btn-secondary"
+                                    onClick={() => {
+                                        try {
+                                            const logs = []
+                                            const originalLog = console.log
+                                            console.log = (...args) => logs.push(args.join(' '))
+                                            // eslint-disable-next-line no-new-func
+                                            new Function(answers[q.id] || '')()
+                                            console.log = originalLog
+                                            alert('Output:\n' + (logs.length ? logs.join('\n') : 'No output'))
+                                        } catch (err) {
+                                            alert('Error:\n' + err.message)
+                                        }
+                                    }}
+                                >
+                                    ▶ Run Code
+                                </button>
+                            </div>
+                        </div>
+                    ) : (q.type === 'MCQ' || q.type === 'True/False') ? (
                         <div className="qp-options">
                             {q.options.map((opt, j) => (
                                 <button key={j} className={`qp-opt ${answers[q.id] === j ? 'selected' : ''}`} onClick={() => selectAnswer(q.id, j)}>
                                     <span className="opt-letter">{String.fromCharCode(65 + j)}</span>
-                                    {opt}
+                                    <MathText text={opt} />
                                 </button>
                             ))}
                         </div>
@@ -520,7 +576,7 @@ export default function TakeExam() {
                         <button className="btn btn-secondary" disabled={currentQ === 0} onClick={() => setCurrentQ(currentQ - 1)}>
                             <ChevronLeft size={16} /> Previous
                         </button>
-                        {currentQ < examQuestions.length - 1 ? (
+                        {currentQ < activeQuestions.length - 1 ? (
                             <button className="btn btn-primary" onClick={() => setCurrentQ(currentQ + 1)}>
                                 Next <ChevronRight size={16} />
                             </button>

@@ -268,6 +268,10 @@ export function ExamProvider({ children }) {
         setExams(prev => prev.map(e => e.id === examId ? { ...e, status: 'Published' } : e))
     }
 
+    const updateExam = (examId, updates) => {
+        setExams(prev => prev.map(e => e.id === examId ? { ...e, ...updates } : e))
+    }
+
     const submitExamAnswers = (examId, answers, studentInfo, violations) => {
         setExams(prev => prev.map(e => {
             if (e.id === examId) {
@@ -490,7 +494,9 @@ export function ExamProvider({ children }) {
             extractedText,
             setExtractedText,
             cheatingReports,
+            cheatingReports,
             addExam,
+            updateExam,
             publishExam,
             submitExamAnswers,
             reportCheating,

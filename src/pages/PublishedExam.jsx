@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
+import { useGoogleLogin } from '@react-oauth/google'
 import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
 import { useExam } from '../context/ExamContext'
@@ -15,7 +16,7 @@ import './Dashboard.css'
 export default function PublishedExam() {
     const { examId } = useParams()
     const navigate = useNavigate()
-    const { getExamById, exams, cancelStudentExam, importSubmission } = useExam()
+    const { getExamById, exams, cancelStudentExam, importSubmission, updateExam } = useExam()
     const [copied, setCopied] = useState(false)
     const [viewingLogs, setViewingLogs] = useState(null)
     const [exporting, setExporting] = useState(false)
@@ -101,51 +102,75 @@ export default function PublishedExam() {
     }
 
     // ========== Google Drive Export ==========
-    const exportToGoogleDrive = async () => {
-        setExporting(true)
-        try {
-            // Generate CSV content
-            // Generate CSV content
-            const headers = ['Name', 'Email', 'Roll No', 'Section', 'Batch', 'Branch', 'Score', 'Status', 'Violations Count', 'Violation Details', 'Cancelled By', 'Submitted At']
-            const rows = (exam.submissions || []).map(sub => {
-                // Format violation logs into a readable string
-                const violationDetails = sub.violationLogs
-                    ? sub.violationLogs.map(v => `${v.reason} (${v.time})`).join('; ')
-                    : (sub.violations > 0 ? 'Violations recorded but no detailed logs available' : 'None')
+    const exportToGoogleDrive = async () => { /* ... */ }
 
-                return [
-                    sub.studentInfo?.name || '',
-                    sub.studentInfo?.email || '',
-                    sub.studentInfo?.rollNo || '',
-                    sub.studentInfo?.section || '',
-                    sub.studentInfo?.batch || '',
-                    sub.studentInfo?.branch || '',
-                    sub.score !== undefined ? sub.score : '',
-                    sub.status || '',
-                    sub.violations || 0,
-                    `"${violationDetails}"`, // Quote to handle commas in text
-                    sub.cancelledBy || (sub.status === 'Cancelled' ? 'Teacher' : ''),
-                    sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : '',
-                ]
-            })
-            const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
+    // ========== Google Sheets Sync ==========
+    const [syncing, setSyncing] = useState(false)
 
-            // Use Google Drive API (requires gapi loaded)
-            // For now, download as CSV since Drive API needs API key setup
-            const blob = new Blob([csvContent], { type: 'text/csv' })
-            const url = URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.download = `${exam.title.replace(/\s+/g, '_')}_drive_export.csv`
-            link.click()
-            URL.revokeObjectURL(url)
-            alert('CSV downloaded! You can upload this to Google Drive manually, or configure the Google Drive API for automatic upload.')
-        } catch (err) {
-            console.error('Export failed:', err)
-            alert('Export failed. Please try again.')
+    const syncToSheets = async (accessToken) => {
+        if (!exam.submissions || exam.submissions.length === 0) {
+            alert('No submissions to sync.')
+            return
         }
-        setExporting(false)
+        setSyncing(true)
+
+        try {
+            // 1. Create Sheet if needed
+            let spreadsheetId = exam.sheetId
+            if (!spreadsheetId) {
+                const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ properties: { title: `${exam.title} - Examora Results` } })
+                })
+                const createData = await createRes.json()
+                if (createData.spreadsheetId) {
+                    spreadsheetId = createData.spreadsheetId
+                    updateExam(exam.id, { sheetId: spreadsheetId, sheetUrl: createData.spreadsheetUrl })
+                } else {
+                    throw new Error('Failed to create spreadsheet')
+                }
+            }
+
+            // 2. Prepare Data
+            const headers = ['Name', 'Roll No', 'Score', 'Status', 'Violations', 'Submitted At']
+            const rows = exam.submissions.map(s => [
+                s.studentInfo?.name || s.studentName,
+                s.studentInfo?.rollNo || '-',
+                s.score || 0,
+                s.status,
+                s.violations || 0,
+                s.submittedAt ? new Date(s.submittedAt).toLocaleString() : ''
+            ])
+
+            // 3. Clear existing values (optional, but safer to avoid dupes if we just overwrite A1)
+            // For now, let's just update Sheet1!A1
+            const updateRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A1?valueInputOption=USER_ENTERED`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ values: [headers, ...rows] })
+            })
+
+            if (updateRes.ok) {
+                alert(`Successfully synced to Google Sheets!\nSheet ID: ${spreadsheetId}`)
+                if (exam.sheetUrl) window.open(exam.sheetUrl, '_blank')
+            } else {
+                throw new Error('Failed to update sheet values')
+            }
+
+        } catch (err) {
+            console.error('Sheets Sync Error:', err)
+            alert('Failed to sync to Google Sheets. Check console for details.')
+        } finally {
+            setSyncing(false)
+        }
     }
+
+    const loginToSheets = useGoogleLogin({
+        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
+        onSuccess: (tokenResponse) => syncToSheets(tokenResponse.access_token),
+        onError: () => alert('Google Sheets login failed'),
+    })
 
     const exam = getExamById(examId)
 
@@ -362,8 +387,8 @@ export default function PublishedExam() {
                                         <button className="btn btn-secondary btn-sm" onClick={downloadCSV}>
                                             <Download size={14} /> CSV
                                         </button>
-                                        <button className="btn btn-primary btn-sm" onClick={exportToGoogleDrive} disabled={exporting}>
-                                            <CloudUpload size={14} /> {exporting ? 'Exporting...' : 'Export to Drive'}
+                                        <button className="btn btn-primary btn-sm" onClick={() => loginToSheets()} disabled={syncing}>
+                                            <CloudUpload size={14} /> {syncing ? 'Syncing...' : 'Sync to Sheets'}
                                         </button>
                                     </div>
                                 )}
