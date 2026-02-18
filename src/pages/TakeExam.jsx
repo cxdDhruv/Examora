@@ -42,6 +42,7 @@ export default function TakeExam() {
     const [currentQ, setCurrentQ] = useState(0)
     const [answers, setAnswers] = useState({})
     const [shuffledQuestions, setShuffledQuestions] = useState([])
+    const [connectionStatus, setConnectionStatus] = useState('CHECKING') // OK, ERROR, CHECKING
 
     // Initialize questions (shuffle if needed)
     useEffect(() => {
@@ -149,13 +150,32 @@ export default function TakeExam() {
         }
         startCamera()
 
+        // CONNECTION CHECK (Verify "Anyone" permission)
+        const checkConnection = async () => {
+            if (!exam?.sheetUrl) return
+            try {
+                // Try to fetch data. If permissions are wrong (e.g. "Only Me"), this will fail CORS or return HTML login page
+                const res = await fetch(exam.sheetUrl)
+                const text = await res.text()
+                // If it returns HTML (Google Login) instead of JSON, permissions are wrong
+                if (text.trim().startsWith('<!DOCTYPE html') || text.includes('accounts.google.com')) {
+                    throw new Error('Auth Required')
+                }
+                setConnectionStatus('OK')
+            } catch (err) {
+                console.error("Connection Check Failed:", err)
+                setConnectionStatus('ERROR')
+            }
+        }
+        checkConnection()
+
         return () => {
             mounted = false
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(t => t.stop())
             }
         }
-    }, [])
+    }, [exam?.sheetUrl])
 
     // Face Detection Loop
     useEffect(() => {
@@ -330,9 +350,9 @@ export default function TakeExam() {
         if (exam) {
             cancelStudentExam(
                 exam.id,
-                studentInfo, // Pass full info
+                studentInfo,
                 `Exam cancelled: ${lastReason}`,
-                allViolations.length || violations.length
+                allViolations || violations
             )
         }
     }
@@ -341,7 +361,7 @@ export default function TakeExam() {
         if (submitted || cancelled) return
         setSubmitted(true)
         if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
-        if (exam) submitExamAnswers(exam.id, answers, studentInfo, violations.length)
+        if (exam) submitExamAnswers(exam.id, answers, studentInfo, violations)
     }
 
     const q = activeQuestions[currentQ]
@@ -445,6 +465,25 @@ export default function TakeExam() {
     return (
         <div className="exam-page" style={{ userSelect: 'none' }}>
             {renderRedScreen()}
+
+            {/* Connection Debug Indicator (Hidden in print) */}
+            <div style={{
+                position: 'fixed', bottom: 10, left: 10, zIndex: 9000,
+                fontSize: '0.75rem',
+                color: connectionStatus === 'ERROR' ? '#ef4444' : connectionStatus === 'OK' ? '#22c55e' : 'rgba(255,255,255,0.3)',
+                pointerEvents: 'none', fontWeight: 600,
+                background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: 4
+            }} className="no-print">
+                Server: {exam?.sheetUrl ? `Linked (${exam.sheetUrl.slice(-6)})` : 'Default (Local)'}
+                <span style={{ marginLeft: 8 }}>
+                    [{connectionStatus === 'CHECKING' ? '...' : connectionStatus}]
+                </span>
+                {connectionStatus === 'ERROR' && (
+                    <div style={{ fontSize: '0.7rem', color: '#fca5a5', marginTop: 2 }}>
+                        ⚠️ Permission Denied: Set Script to "Anyone"
+                    </div>
+                )}
+            </div>
 
             {showWarning && (
                 <div className="warning-overlay">

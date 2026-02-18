@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Navbar from '../components/Navbar'
@@ -16,16 +17,17 @@ import './Dashboard.css'
 const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08 } }) }
 
 export default function TeacherDashboard() {
-    const { cheatingReports, exams, duplicateExam } = useExam()
+    const { cheatingReports, exams } = useExam()
     const { user } = useAuth()
     const userName = user?.name || localStorage.getItem('user_name') || 'Teacher'
 
     // Compute real stats from context
     const totalExams = exams.length
-    const totalStudents = exams.reduce((sum, e) => sum + (e.submissions?.length || 0), 0)
+    const totalStudents = exams.reduce((sum, e) => sum + (e.submissionCount || 0), 0)
     const totalQuestions = exams.reduce((sum, e) => sum + (e.questions?.length || 0), 0)
-    const allScores = exams.flatMap(e => (e.submissions || []).map(s => s.score || 0))
-    const avgScore = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0
+
+    // Average score requires fetching all submissions, which we don't do initially for performance.
+    // We'll hide it or show a placeholder for now.
 
     const publishedExams = exams.filter(e => e.status === 'Published')
 
@@ -33,13 +35,12 @@ export default function TeacherDashboard() {
         { label: 'Total Exams', value: totalExams, icon: ClipboardList, change: `${publishedExams.length} published`, color: '#673ab7' },
         { label: 'Submissions', value: totalStudents, icon: Users, change: `Across ${totalExams} exams`, color: '#2196f3' },
         { label: 'Questions', value: totalQuestions, icon: BookOpen, change: 'Created', color: '#4caf50' },
-        { label: 'Avg Score', value: allScores.length > 0 ? `${avgScore}%` : '—', icon: TrendingUp, change: allScores.length > 0 ? `${allScores.length} submissions` : 'No submissions yet', color: '#ff9800' },
+        { label: 'Avg Score', value: '—', icon: TrendingUp, change: 'View details to see', color: '#ff9800' },
     ]
 
     const handleDuplicate = (examId) => {
-        if (window.confirm('Are you sure you want to duplicate this exam?')) {
-            duplicateExam(examId)
-        }
+        // Duplication feature temporarily disabled during migration
+        alert("Feature coming soon!")
     }
 
     const handleExportPDF = async (exam) => {
@@ -255,6 +256,123 @@ export default function TeacherDashboard() {
                     </div>
                 )}
             </main>
+        </div>
+    )
+}
+
+function ConnectionTester() {
+    const { googleSheetUrl, setGoogleSheetUrl } = useExam()
+    const [status, setStatus] = useState('Make sure you are online')
+    const [details, setDetails] = useState('')
+
+    const testConnection = async () => {
+        setStatus('Starting...')
+        setDetails('')
+
+        const timer = setTimeout(() => {
+            setStatus('Timed Out ⚠️')
+            setDetails(prev => prev + '\n❌ Operation timed out after 10s. Check your network or Firewall.')
+        }, 10000)
+
+        try {
+            // Step 1: Load SDK
+            setStatus('Loading SDK...')
+            const { db } = await import('../config/firebase')
+            const { collection, addDoc, getDocs, limit, query } = await import('firebase/firestore')
+
+            if (!db) throw new Error("Firebase DB not initialized in code")
+            setDetails(prev => prev + '✅ SDK Loaded\n')
+
+            // Step 2: Write Test
+            setStatus('Writing...')
+            const docRef = await addDoc(collection(db, 'system_diagnostics'), {
+                test: true,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            })
+            setDetails(prev => prev + `✅ Write Success: ${docRef.id}\n`)
+
+            // Step 3: Read Test
+            setStatus('Reading...')
+            const q = query(collection(db, 'system_diagnostics'), limit(1))
+            const querySnapshot = await getDocs(q)
+            setDetails(prev => prev + `✅ Read Success: Found ${querySnapshot.size} docs\n`)
+
+            setStatus('Connected ✅')
+            clearTimeout(timer)
+        } catch (err) {
+            console.error(err)
+            clearTimeout(timer)
+            setStatus('Failed ❌')
+            setDetails(prev => prev + `\n🛑 Error: ${err.message}\n${err.code ? `Code: ${err.code}` : ''}`)
+
+            if (err.message.includes('permission-denied') || err.message.includes('Missing or insufficient permissions')) {
+                setDetails(prev => prev + `\n\n💡 FIX: Go to Firebase Console > Firestore Database > Rules.\nChange to: allow read, write: if true;`)
+            }
+        }
+    }
+
+    return (
+        <div>
+            {/* Google Sheets Config */}
+            <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #eee' }}>
+                <h4 style={{ fontSize: '0.9rem', marginBottom: 8 }}>🔥 Firewall Bypass (Google Sheets)</h4>
+                <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: 8 }}>
+                    If Firebase is blocked, paste your <strong>Google Apps Script Web App URL</strong> here.
+                    Data will be sent there as a backup.
+                </p>
+                <input
+                    type="text"
+                    placeholder="https://script.google.com/macros/s/..."
+                    value={googleSheetUrl}
+                    onChange={(e) => setGoogleSheetUrl(e.target.value)}
+                    style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd', fontSize: '0.85rem' }}
+                />
+            </div>
+
+            {/* Existing Firebase Tester */}
+            <h4 style={{ fontSize: '0.9rem', marginBottom: 8 }}>Firebase Connection</h4>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <button onClick={testConnection} className="btn btn-sm btn-primary">
+                    Test Connection
+                </button>
+                <span style={{ fontWeight: 600 }}>{status}</span>
+            </div>
+            {details && (
+                <pre style={{
+                    background: '#f8f9fa', padding: 10, borderRadius: 6,
+                    fontSize: '0.8rem', color: '#333', overflowX: 'auto', whiteSpace: 'pre-wrap'
+                }}>
+                    {details}
+                </pre>
+            )}
+            <div style={{ fontSize: '0.75rem', color: '#666', marginTop: 8 }}>
+                <strong>Current Config:</strong> Project ID: {import.meta.env.VITE_FIREBASE_PROJECT_ID}
+            </div>
+        </div>
+    )
+}
+
+function ManualSyncButton() {
+    const { syncAllSubmissions, isSyncing, lastSyncTime } = useExam()
+
+    return (
+        <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #eee' }}>
+            <h4 style={{ fontSize: '0.9rem', marginBottom: 8 }}>🔄 Global Data Sync</h4>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                    onClick={syncAllSubmissions}
+                    disabled={isSyncing}
+                    className="btn btn-sm btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                    <Clock size={14} className={isSyncing ? "spin" : ""} />
+                    {isSyncing ? 'Syncing...' : 'Sync Now'}
+                </button>
+                <span style={{ fontSize: '0.8rem', color: '#666' }}>
+                    {lastSyncTime ? `Last updated: ${lastSyncTime.toLocaleTimeString()}` : 'Auto-sync active (15s)'}
+                </span>
+            </div>
         </div>
     )
 }

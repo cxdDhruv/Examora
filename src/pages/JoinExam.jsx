@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useExam } from '../context/ExamContext'
 import {
-    KeyRound, Shield, QrCode, ArrowRight, AlertCircle, CheckCircle, Smartphone
+    KeyRound, Shield, ArrowRight, AlertCircle
 } from 'lucide-react'
 
 export default function JoinExam() {
@@ -14,6 +14,10 @@ export default function JoinExam() {
 
     const [code, setCode] = useState(urlCode || '')
     const [error, setError] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [exam, setExam] = useState(null)
+
+    // Student Form State
     const [studentName, setStudentName] = useState('')
     const [studentEmail, setStudentEmail] = useState('')
     const [rollNo, setRollNo] = useState('')
@@ -21,84 +25,82 @@ export default function JoinExam() {
     const [batch, setBatch] = useState('')
     const [branch, setBranch] = useState('')
 
-    // Decode exam data from URL if present (encoded by teacher's PublishedExam page)
-    const urlExamData = useMemo(() => {
-        try {
-            // Case 1: The code parameter itself is the base64 data (from PublishedExam.jsx)
-            if (urlCode && urlCode.length > 20) {
-                // PublishedExam uses: btoa(encodeURIComponent(json))
-                // So we reverse: decodeURIComponent(atob(urlCode))
-                const decoded = decodeURIComponent(atob(urlCode))
-                return JSON.parse(decoded)
-            }
+    const [step, setStep] = useState('code') // code, info, ready
 
-            // Case 2: Query param ?d= (Legacy or specific cases)
+    // Initialize: Check URL for exam data or code
+    useEffect(() => {
+        const init = async () => {
+            // 1. Try URL-embedded data (Base64)
             const hashPart = location.search || ''
             const params = new URLSearchParams(hashPart)
             const d = params.get('d')
+
             if (d) {
-                const decoded = decodeURIComponent(atob(d))
-                return JSON.parse(decoded)
+                try {
+                    const decoded = decodeURIComponent(atob(d))
+                    const data = JSON.parse(decoded)
+                    if (data && data.id) {
+                        setExam(data)
+                        setStep('info')
+                        return
+                    }
+                } catch (e) { console.warn('INVALID_URL_DATA', e) }
             }
-        } catch (e) {
-            console.warn('Could not decode exam from URL:', e)
+
+            // 2. Try fetching from Firestore if we have a short code (and no embedded data)
+            if (urlCode && urlCode.length <= 8) {
+                setLoading(true)
+                try {
+                    const found = await getExamByCode(urlCode.toUpperCase())
+                    if (found) {
+                        setExam(found)
+                        setStep('info')
+                    } else {
+                        // If not found in DB, maybe it was a bad link or just needs manual entry
+                        setError('Exam not found. Please check the code.')
+                    }
+                } catch (e) {
+                    console.error(e)
+                } finally {
+                    setLoading(false)
+                }
+            } else if (urlCode) {
+                // If it's a long code but failed decoding above, show error
+                setStep('code')
+            }
         }
-        return null
-    }, [urlCode, location.search])
+        init()
+    }, [urlCode, location.search, getExamByCode])
 
-    // Try context first, then URL-embedded data
-    const exam = useMemo(() => {
-        // If we successfully decoded data from URL, use it
-        if (urlExamData) return urlExamData
-
-        // Otherwise check if code corresponds to a local exam (Teacher testing on same device)
-        if (code && code.length <= 8) {
-            const fromContext = getExamByCode(code.toUpperCase())
-            if (fromContext) return fromContext
-        }
-        return null
-    }, [code, urlExamData, getExamByCode])
-
-    const [step, setStep] = useState(() => {
-        if (urlExamData) return 'info'
-        // If validation fails for short code, we'll handle it in useEffect or let user click
-        if (urlCode && urlCode.length <= 8) return 'info'
-        return 'code'
-    })
-
-    const handleCodeSubmit = (e) => {
+    const handleCodeSubmit = async (e) => {
         e.preventDefault()
         if (!code.trim()) {
             setError('Please enter an exam code.')
             return
         }
-        // If it's a long code (pasted data link), try to decode it directly
-        if (code.length > 20) {
-            try {
-                const decoded = decodeURIComponent(atob(code))
-                const data = JSON.parse(decoded)
-                if (data && data.id) {
-                    // It's valid data, just redirect or reload with this code in URL
-                    // Or better, just set urlExamData logic to handle it if we put it in state? 
-                    // Actually, if they paste it, we can't easily put it in URL without nav.
-                    // Let's just tell them to use the link.
-                }
-            } catch (e) { }
-            setError('Please use the full link provided by your teacher.')
-            return
-        }
 
-        const found = getExamByCode(code.toUpperCase())
-        if (!found) {
-            setError('Invalid exam code. Please use the full link shared by your teacher.')
-            return
-        }
-        if (found.status !== 'Published') {
-            setError('This exam is not yet published.')
-            return
-        }
+        setLoading(true)
         setError('')
-        setStep('info')
+
+        try {
+            const found = await getExamByCode(code.toUpperCase())
+            if (!found) {
+                setError('Invalid exam code. Please use the full link shared by your teacher.')
+                setLoading(false)
+                return
+            }
+            if (found.status !== 'Published') {
+                setError('This exam is not yet published.')
+                setLoading(false)
+                return
+            }
+            setExam(found)
+            setStep('info')
+        } catch (err) {
+            setError('Error searching for exam. Please try again.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleInfoSubmit = (e) => {
@@ -123,6 +125,7 @@ export default function JoinExam() {
                 branch
             }))
             // Store exam data in sessionStorage so TakeExam can access it
+            // (Even with Firestore, we keep this as a backup/cache)
             sessionStorage.setItem('current_exam', JSON.stringify(exam))
             navigate(`/student/exam/${exam.id}`)
         }
@@ -192,10 +195,11 @@ export default function JoinExam() {
                                         textAlign: 'center', fontFamily: 'monospace', textTransform: 'uppercase'
                                     }}
                                     autoFocus
+                                    disabled={loading}
                                 />
                             </div>
-                            <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-                                Find Exam <ArrowRight size={16} />
+                            <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={loading}>
+                                {loading ? 'Searching...' : <>Find Exam <ArrowRight size={16} /></>}
                             </button>
                         </form>
                     )}
@@ -250,19 +254,6 @@ export default function JoinExam() {
                                 Continue <ArrowRight size={16} />
                             </button>
                         </form>
-                    )}
-
-                    {step === 'info' && !exam && (
-                        <div style={{ textAlign: 'center', padding: 20 }}>
-                            <AlertCircle size={40} color="var(--warning-400)" style={{ marginBottom: 12 }} />
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8 }}>Exam Not Found</h3>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-                                This exam link may have expired or is invalid. Ask your teacher for a new link.
-                            </p>
-                            <button className="btn btn-secondary" onClick={() => { setStep('code'); setCode('') }}>
-                                Try Another Code
-                            </button>
-                        </div>
                     )}
 
                     {step === 'ready' && exam && (

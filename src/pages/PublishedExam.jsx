@@ -16,7 +16,8 @@ import './Dashboard.css'
 export default function PublishedExam() {
     const { examId } = useParams()
     const navigate = useNavigate()
-    const { getExamById, exams, cancelStudentExam, importSubmission, updateExam } = useExam()
+    const { getExamById, exams, cancelStudentExam, importSubmission, updateExam, googleSheetUrl } = useExam()
+    const exam = getExamById(examId)
     const [copied, setCopied] = useState(false)
     const [viewingLogs, setViewingLogs] = useState(null)
     const [exporting, setExporting] = useState(false)
@@ -29,7 +30,7 @@ export default function PublishedExam() {
             try {
                 const { db } = await import('../config/firebase')
                 const { collection, query, where, onSnapshot } = await import('firebase/firestore')
-                const q = query(collection(db, "submissions"), where("examId", "==", parseInt(examId)))
+                const q = query(collection(db, "submissions"), where("examId", "==", Number(examId)))
 
                 unsubscribe = onSnapshot(q, (snapshot) => {
                     const subs = []
@@ -50,6 +51,32 @@ export default function PublishedExam() {
         setupListener()
         return () => unsubscribe()
     }, [examId])
+
+    // Listen for Google Sheet updates (Polling) - Firewall Bypass Mode
+    useEffect(() => {
+        if (!googleSheetUrl) return
+
+        const fetchSheetData = async () => {
+            try {
+                const res = await fetch(googleSheetUrl)
+                if (res.ok) {
+                    const data = await res.json()
+                    // Filter for this exam
+                    // data is array of full submission objects
+                    const relevant = data.filter(d => Number(d.examId) === Number(examId))
+                    if (relevant.length > 0) {
+                        setLiveSubmissions(relevant)
+                    }
+                }
+            } catch (err) {
+                console.error("Sheet polling failed", err)
+            }
+        }
+
+        fetchSheetData()
+        const interval = setInterval(fetchSheetData, 5000) // Poll every 5s
+        return () => clearInterval(interval)
+    }, [examId, googleSheetUrl])
 
     // Merge live submissions with local ones for display
     const displaySubmissions = useMemo(() => {
@@ -215,8 +242,6 @@ export default function PublishedExam() {
         onError: () => alert('Google Sheets login failed'),
     })
 
-    const exam = getExamById(examId)
-
     if (!exam) {
         return (
             <div className="page-wrapper">
@@ -244,7 +269,8 @@ export default function PublishedExam() {
             title: exam.title,
             questions: exam.questions,
             duration: exam.duration,
-            settings: exam.settings
+            settings: exam.settings,
+            sheetUrl: googleSheetUrl // Embed current sheet URL for remote students
         }
         // Use LZString to compress (we need to add this library)
         // For now, we'll try to strip unnecessary data if we can't add libraries easily
@@ -252,7 +278,7 @@ export default function PublishedExam() {
         const json = JSON.stringify(payload)
         const encoded = btoa(encodeURIComponent(json))
         return `${baseUrl}#/join/${encoded}`
-    }, [exam])
+    }, [exam, googleSheetUrl])
 
     const copyLink = () => {
         navigator.clipboard.writeText(joinUrl)
@@ -383,6 +409,9 @@ export default function PublishedExam() {
                             <button className="btn btn-secondary" style={{ width: '100%' }} onClick={copyLink}>
                                 <Share2 size={16} /> Copy Link
                             </button>
+                            <div style={{ marginTop: 12, fontSize: '0.75rem', color: '#999', wordBreak: 'break-all' }}>
+                                <strong>Linked Sheet:</strong> {googleSheetUrl.substring(0, 40)}...
+                            </div>
                         </div>
 
                         {/* Student Submissions Table */}

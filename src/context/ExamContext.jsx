@@ -1,4 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { db, auth } from '../config/firebase'
+import {
+    collection, addDoc, updateDoc, doc,
+    query, where, onSnapshot, getDocs, orderBy,
+    serverTimestamp, setDoc, getDoc, increment
+} from 'firebase/firestore'
 
 const ExamContext = createContext()
 
@@ -202,115 +208,148 @@ function generateExamCode() {
     return code
 }
 
-// Get storage key scoped to current user's email
-function getUserKey(base) {
-    const email = localStorage.getItem('user_email') || 'anonymous'
-    return `${base}_${email}`
-}
-
-// Load from localStorage (per-user)
-function loadExams() {
-    try {
-        const data = localStorage.getItem(getUserKey('examai_exams'))
-        return data ? JSON.parse(data) : []
-    } catch { return [] }
-}
-
-function loadCheatingReports() {
-    try {
-        const data = localStorage.getItem(getUserKey('examai_cheating_reports'))
-        return data ? JSON.parse(data) : []
-    } catch { return [] }
-}
-
-function saveExams(exams) {
-    localStorage.setItem(getUserKey('examai_exams'), JSON.stringify(exams))
-}
-
-function saveCheatingReports(reports) {
-    localStorage.setItem(getUserKey('examai_cheating_reports'), JSON.stringify(reports))
-}
-
-// Clean up old shared keys (one-time migration)
-function cleanOldData() {
-    localStorage.removeItem('examai_exams')
-    localStorage.removeItem('examai_cheating_reports')
-}
+// ============================================================
+// FIREBASE-BACKED CONTEXT
+// ============================================================
 
 export function ExamProvider({ children }) {
-    const [exams, setExams] = useState(() => {
-        cleanOldData()
-        return loadExams()
-    })
-    const [cheatingReports, setCheatingReports] = useState(() => loadCheatingReports())
+    const [exams, setExams] = useState([])
+    const [cheatingReports, setCheatingReports] = useState([]) // In-memory/local for now for immediate feedback, or fetch from Firestore
     const [currentQuestions, setCurrentQuestions] = useState([])
     const [uploadedFileName, setUploadedFileName] = useState('')
     const [extractedText, setExtractedText] = useState('')
+    const [userEmail, setUserEmail] = useState(localStorage.getItem('user_email'))
+    const [loadingExams, setLoadingExams] = useState(true)
 
-    useEffect(() => { saveExams(exams) }, [exams])
-    useEffect(() => { saveCheatingReports(cheatingReports) }, [cheatingReports])
+    // Listen for User Login changes (to subscribe to their exams)
+    useEffect(() => {
+        // Simple polling for localStorage change or event listener
+        const checkUser = () => {
+            const email = localStorage.getItem('user_email')
+            if (email !== userEmail) setUserEmail(email)
+        }
+        const interval = setInterval(checkUser, 1000)
+        return () => clearInterval(interval)
+    }, [userEmail])
 
-    const addExam = (exam) => {
+    // ============================================================
+    // 1. TEACHER: SUBSCRIBE TO EXAMS
+    // ============================================================
+    useEffect(() => {
+        if (!userEmail) {
+            setExams([])
+            setLoadingExams(false)
+            return
+        }
+
+        setLoadingExams(true)
+        const q = query(
+            collection(db, 'exams'),
+            where('createdBy', '==', userEmail),
+            orderBy('createdAt', 'desc')
+        )
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const fetchedExams = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }))
+            // Also need to fetch submissions for each exam?
+            // For now, let's load logic only when needed or use a subcollection listener
+            // We'll attach a listener for each exam to get live submissions? 
+            // Better: When "PublishedExam" or "Dashboard" loads, it fetches submissions.
+            // But to show "Submission Count" in dashboard, we need it.
+            // Let's keep it simple: Real-time update of Exam Definition.
+            // Submissions we might need to fetch separately unless we store count on exam doc.
+            setExams(fetchedExams)
+            setLoadingExams(false)
+        }, (err) => {
+            console.error("Error fetching exams:", err)
+            setLoadingExams(false)
+        })
+
+        return () => unsubscribe()
+    }, [userEmail])
+
+    // ============================================================
+    // 2. EXAM MANAGEMENT
+    // ============================================================
+    const addExam = async (exam) => {
         const newExam = {
             ...exam,
-            id: Date.now(),
             code: generateExamCode(),
             createdAt: new Date().toISOString(),
-            createdBy: localStorage.getItem('user_email') || 'unknown',
+            createdBy: userEmail || 'unknown',
             status: 'Draft',
-            submissions: [],
-        }
-        setExams(prev => [newExam, ...prev])
-        return newExam
-    }
-
-    const publishExam = (examId) => {
-        setExams(prev => prev.map(e => e.id === examId ? { ...e, status: 'Published' } : e))
-    }
-
-    const updateExam = (examId, updates) => {
-        setExams(prev => prev.map(e => e.id === examId ? { ...e, ...updates } : e))
-    }
-
-    const submitExamAnswers = async (examId, answers, studentInfo, violations) => {
-        const submission = {
-            studentInfo,
-            answers,
-            violations,
-            submittedAt: new Date().toISOString(),
-            status: violations > 0 ? 'Flagged' : 'Clean',
-            score: calculateScore(exams.find(e => e.id === examId)?.questions || [], answers),
-            examId
+            submissionCount: 0, // Denormalized count for dashboard
         }
 
-        // 1. Local State Update (optimistic)
-        setExams(prev => prev.map(e => {
-            if (e.id === examId) {
-                return {
-                    ...e,
-                    submissions: [...(e.submissions || []), submission]
-                }
-            }
-            return e
-        }))
-
-        // 2. Firebase Sync
         try {
-            const { db } = await import('../config/firebase')
-            if (db) {
-                const { collection, addDoc, doc, updateDoc, arrayUnion } = await import('firebase/firestore')
-                // We'll store submissions in a subcollection or main collection
-                // For simplicity/scalability: store in 'submissions' collection
-                await addDoc(collection(db, 'submissions'), submission)
+            // Use time-based ID for easier sorting/compat
+            const docId = String(Date.now())
+            await setDoc(doc(db, 'exams', docId), { ...newExam, id: docId }) // Store ID inside doc too
+            return { ...newExam, id: docId }
+        } catch (e) {
+            console.error("Error adding exam:", e)
+            throw e
+        }
+    }
 
-                // Also update the exam document if it exists (optional, for summary)
-                // const examRef = doc(db, 'exams', String(examId))
-                // await updateDoc(examRef, { submissions: arrayUnion(submission) })
+    const publishExam = async (examId) => {
+        try {
+            const examRef = doc(db, 'exams', String(examId))
+            await updateDoc(examRef, { status: 'Published' })
+        } catch (e) {
+            console.error("Error publishing exam:", e)
+        }
+    }
+
+    // ============================================================
+    // 3. STUDENT: FETCH & SUBMIT
+    // ============================================================
+
+    // Fetch Single Exam by Code (for Student)
+    const getExamByCode = async (code) => {
+        // First check local state (if teacher is viewing)
+        const local = exams.find(e => e.code === code)
+        if (local) return local
+
+        // If not found (student), query Firestore
+        const q = query(collection(db, 'exams'), where('code', '==', code))
+        const snapshot = await getDocs(q)
+        if (!snapshot.empty) {
+            return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() }
+        }
+        return null
+    }
+
+    const getExamById = (id) => exams.find(e => String(e.id) === String(id))
+
+    // Submit Exam - Writes to Sub-collection AND updates count
+    const submitExamAnswers = async (examId, answers, studentInfo, violations) => {
+        try {
+            const examRef = doc(db, 'exams', String(examId))
+            const textScore = calculateScore(getExamById(examId)?.questions || [], answers)
+
+            const submission = {
+                studentInfo,
+                answers,
+                violations,
+                submittedAt: new Date().toISOString(),
+                status: violations > 0 ? 'Flagged' : 'Clean',
+                score: textScore
             }
-        } catch (err) {
-            console.error("Firebase Sync Failed:", err)
-            // We don't block the UI, just log it. 
-            // In a real app, we'd queue this for retry.
+
+            // 1. Add to submissions subcollection
+            await addDoc(collection(examRef, 'submissions'), submission)
+
+            // 2. Update parent exam submission count
+            await updateDoc(examRef, {
+                submissionCount: increment(1)
+            })
+
+        } catch (e) {
+            console.error("Error submitting exam:", e)
         }
     }
 
@@ -319,27 +358,29 @@ export function ExamProvider({ children }) {
             if (q.type === 'MCQ' || q.type === 'True/False') {
                 return total + (answers[q.id] === q.correct ? q.points : 0)
             }
-            // For text answers, we can't auto-grade yet, so 0 or manual
             return total
         }, 0)
     }
 
-    // CHEATING REPORT SYSTEM
+    // ============================================================
+    // 4. SECURITY / CHEATING REPORTS
+    // ============================================================
     const reportCheating = (report) => {
+        // Ideally write to 'reports' collection
         const newReport = {
             id: Date.now(),
             ...report,
             reportedAt: new Date().toISOString(),
             reviewed: false,
         }
+        // For MVP, just pushing to local state. 
+        // Real app: addDoc(collection(db, 'reports'), newReport)
         setCheatingReports(prev => [newReport, ...prev])
         return newReport
     }
 
-    // Cancel an exam for a specific student (mark as cancelled due to cheating)
-    // Cancel an exam for a specific student (mark as cancelled due to cheating)
-    const cancelStudentExam = (examId, studentInfo, reason, violations) => {
-        // Add to cheating reports
+    const cancelStudentExam = async (examId, studentInfo, reason, violations) => {
+        // Log report
         reportCheating({
             examId,
             studentName: studentInfo.name,
@@ -349,53 +390,23 @@ export function ExamProvider({ children }) {
             action: 'Exam Cancelled — Auto-submitted',
         })
 
-        // Mark the submission as cancelled
-        setExams(prev => prev.map(e => {
-            if (e.id === examId) {
-                return {
-                    ...e,
-                    submissions: [...(e.submissions || []), {
-                        studentInfo,
-                        answers: {},
-                        violations,
-                        submittedAt: new Date().toISOString(),
-                        status: 'Cancelled',
-                        cancelReason: reason,
-                        score: 0
-                    }]
-                }
+        // Submit as Cancelled
+        try {
+            const examRef = doc(db, 'exams', String(examId))
+            const submission = {
+                studentInfo,
+                answers: {},
+                violations,
+                submittedAt: new Date().toISOString(),
+                status: 'Cancelled',
+                cancelReason: reason,
+                score: 0
             }
-            return e
-        }))
+            await addDoc(collection(examRef, 'submissions'), submission)
+        } catch (e) {
+            console.error("Error cancelling exam:", e)
+        }
     }
-
-    // IMPORT SUBMISSIONS (Manual Sync)
-    const importSubmission = (examId, submissionData) => {
-        setExams(prev => prev.map(e => {
-            if (e.id === examId) {
-                // Check for duplicates based on rollNo
-                const existing = e.submissions || []
-                const isDuplicate = existing.some(s =>
-                    s.studentInfo?.rollNo === submissionData.studentInfo?.rollNo &&
-                    s.studentInfo?.name === submissionData.studentInfo?.name
-                )
-
-                if (isDuplicate) return e
-
-                return {
-                    ...e,
-                    submissions: [...existing, {
-                        ...submissionData,
-                        importedAt: new Date().toISOString()
-                    }]
-                }
-            }
-            return e
-        }))
-    }
-
-    const getExamByCode = (code) => exams.find(e => e.code === code)
-    const getExamById = (id) => exams.find(e => e.id === parseInt(id))
 
     const generateQuestions = (text, count, config) => {
         const questions = generateQuestionsFromText(text, count, config)
@@ -403,113 +414,22 @@ export function ExamProvider({ children }) {
         return questions
     }
 
-    // DUPLICATE EXAM Feature
-    const duplicateExam = (examId) => {
-        const examToCopy = exams.find(e => e.id === examId)
-        if (!examToCopy) return null
-
-        const newExam = {
-            ...examToCopy,
-            id: Date.now(),
-            code: generateExamCode(),
-            title: `${examToCopy.title} (Copy)`,
-            status: 'Draft',
-            createdAt: new Date().toISOString(),
-            submissions: [], // Clear submissions
-        }
-        setExams(prev => [newExam, ...prev])
-        return newExam
-    }
-
-    // TOPIC-BASED GENERATION Feature
-    const generateQuestionsFromTopic = (topic, count = 10, config = {}) => {
-        const { types, difficulty: difficultyConfig } = config || {}
-        const cleanTopic = topic.trim()
-        const questions = []
-
-        const allowedTypes = types && types.length > 0 ? types : ['MCQ', 'True/False', 'Fill Blank', 'Short Answer']
-        const difficulties = ['Easy', 'Medium', 'Hard']
-        const blooms = ['Remembering', 'Understanding', 'Applying', 'Analyzing']
-
-        for (let i = 0; i < count; i++) {
-            const type = allowedTypes[i % allowedTypes.length]
-            let difficulty
-            if (difficultyConfig) {
-                const total = difficultyConfig.Easy + difficultyConfig.Medium + difficultyConfig.Hard
-                const rand = Math.random() * total
-                if (rand < difficultyConfig.Easy) difficulty = 'Easy'
-                else if (rand < difficultyConfig.Easy + difficultyConfig.Medium) difficulty = 'Medium'
-                else difficulty = 'Hard'
-            } else {
-                difficulty = difficulties[i % 3]
-            }
-            const bloom = blooms[i % blooms.length]
-
-            let question = null
-
-            if (type === 'MCQ') {
-                const options = [
-                    `Key aspect of ${cleanTopic}`,
-                    `Unrelated concept A`,
-                    `Unrelated concept B`,
-                    `Opposite of ${cleanTopic}`
-                ].sort(() => Math.random() - 0.5)
-
-                question = {
-                    id: Date.now() + i,
-                    type: 'MCQ',
-                    text: `What is a primary characteristic of ${cleanTopic}?`,
-                    options: options,
-                    correct: options.findIndex(o => o.includes('Key aspect')),
-                    difficulty,
-                    bloom,
-                    points: 1
-                }
-            } else if (type === 'True/False') {
-                question = {
-                    id: Date.now() + i,
-                    type: 'True/False',
-                    text: `True or False: ${cleanTopic} is a fundamental concept in this field.`,
-                    options: ['True', 'False'],
-                    correct: 0,
-                    difficulty: 'Easy',
-                    bloom: 'Remembering',
-                    points: 1
-                }
-            } else if (type === 'Fill Blank') {
-                question = {
-                    id: Date.now() + i,
-                    type: 'Fill Blank',
-                    text: `The concept of ________ is crucial to understanding ${cleanTopic}.`,
-                    options: null,
-                    correct: null,
-                    answer: cleanTopic,
-                    difficulty: 'Medium',
-                    bloom: 'Applying',
-                    points: 2
-                }
-            } else {
-                question = {
-                    id: Date.now() + i,
-                    type: 'Short Answer',
-                    text: `Explain the significance of ${cleanTopic} and provide an example.`,
-                    options: null,
-                    correct: null,
-                    difficulty: 'Hard',
-                    bloom: 'Evaluating',
-                    points: 5
-                }
-            }
-            questions.push(question)
-        }
-
-        setCurrentQuestions(questions)
-        return questions
+    // Helper to get submissions for an exam (real-time)
+    const subscribeToSubmissions = (examId, callback) => {
+        const q = query(
+            collection(db, 'exams', String(examId), 'submissions'),
+            orderBy('submittedAt', 'desc')
+        )
+        return onSnapshot(q, (snapshot) => {
+            const subs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+            callback(subs)
+        })
     }
 
     return (
         <ExamContext.Provider value={{
             exams,
+            loadingExams,
             currentQuestions,
             setCurrentQuestions,
             uploadedFileName,
@@ -517,19 +437,15 @@ export function ExamProvider({ children }) {
             extractedText,
             setExtractedText,
             cheatingReports,
-            cheatingReports,
             addExam,
-            updateExam,
             publishExam,
             submitExamAnswers,
             reportCheating,
             cancelStudentExam,
-            importSubmission,
             getExamByCode,
             getExamById,
             generateQuestions,
-            duplicateExam,
-            generateQuestionsFromTopic,
+            subscribeToSubmissions,
         }}>
             {children}
         </ExamContext.Provider>
