@@ -46,9 +46,9 @@ export default function DocumentUpload() {
     const extractTextFromPDF = async (arrayBuffer) => {
         try {
             const pdfjsLib = await import('pdfjs-dist')
-            // Use the CDN worker matching the installed version
-            const version = pdfjsLib.version || '4.9.155'
-            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`
+            // Use local worker file via Vite's ?url import
+            const pdfWorker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
+            pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker.default
 
             const loadingTask = pdfjsLib.getDocument({
                 data: arrayBuffer,

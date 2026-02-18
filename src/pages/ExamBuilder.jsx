@@ -78,7 +78,7 @@ export default function ExamBuilder() {
         }))
     }
 
-    const handlePublish = () => {
+    const handlePublish = async () => {
         if (!settings.title.trim()) {
             alert('Please enter an exam title')
             return
@@ -87,15 +87,19 @@ export default function ExamBuilder() {
             alert('Please add at least one question')
             return
         }
-        const exam = addExam({
-            title: settings.title,
-            duration: settings.duration,
-            questions,
-            settings,
-            totalPoints,
-        })
-        publishExam(exam.id)
-        navigate(`/teacher/published/${exam.id}`)
+        try {
+            const exam = await addExam({
+                title: settings.title,
+                duration: settings.duration,
+                questions,
+                settings,
+                totalPoints,
+            })
+            await publishExam(exam.id)
+            navigate(`/teacher/published/${exam.id}`)
+        } catch (e) {
+            alert("Failed to publish exam. Please try again.")
+        }
     }
 
     return (
