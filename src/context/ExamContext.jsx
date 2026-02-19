@@ -408,10 +408,50 @@ export function ExamProvider({ children }) {
         }
     }
 
-    const generateQuestions = (text, count, config) => {
-        const questions = generateQuestionsFromText(text, count, config)
-        setCurrentQuestions(questions)
-        return questions
+    // Generate Questions (Text)
+    const generateQuestions = async (text, count, config) => {
+        try {
+            if (import.meta.env.VITE_OPENAI_API_KEY) {
+                const { generateQuestionsOpenAI } = await import('../services/openai');
+                const questions = await generateQuestionsOpenAI(text, count, config.types, config.difficulty);
+                setCurrentQuestions(questions);
+                return questions;
+            } else {
+                // Fallback to local regex logic
+                const questions = generateQuestionsFromText(text, count, config);
+                setCurrentQuestions(questions);
+                return questions;
+            }
+        } catch (err) {
+            console.error("Generation Error:", err);
+            // Fallback on error
+            const questions = generateQuestionsFromText(text, count, config);
+            setCurrentQuestions(questions);
+            return questions;
+        }
+    }
+
+    // Generate Questions (Topic)
+    const generateQuestionsFromTopic = async (topic, count, config) => {
+        try {
+            if (import.meta.env.VITE_OPENAI_API_KEY) {
+                const { generateQuestionsFromTopicOpenAI } = await import('../services/openai');
+                const questions = await generateQuestionsFromTopicOpenAI(topic, count, config.types, config.difficulty);
+                setCurrentQuestions(questions);
+                return questions;
+            } else {
+                // Mock for topic if no API
+                const questions = getDefaultQuestions().map(q => ({ ...q, text: `${q.text} (${topic})` }));
+                setCurrentQuestions(questions);
+                return questions;
+            }
+        } catch (err) {
+            console.error("Topic Generation Error:", err);
+            alert("Failed to generate from topic with AI. Using offline mode.");
+            const questions = getDefaultQuestions();
+            setCurrentQuestions(questions);
+            return questions;
+        }
     }
 
     // Helper to get submissions for an exam (real-time)
@@ -445,6 +485,7 @@ export function ExamProvider({ children }) {
             getExamByCode,
             getExamById,
             generateQuestions,
+            generateQuestionsFromTopic,
             subscribeToSubmissions,
         }}>
             {children}

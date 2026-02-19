@@ -46,9 +46,9 @@ export default function DocumentUpload() {
     const extractTextFromPDF = async (arrayBuffer) => {
         try {
             const pdfjsLib = await import('pdfjs-dist')
-            // Use local worker file via Vite's ?url import
-            const pdfWorker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
-            pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker.default
+
+            // FIX: Use CDN for worker to avoid build/path issues in production (GitHub Pages/Render)
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
 
             const loadingTask = pdfjsLib.getDocument({
                 data: arrayBuffer,
@@ -211,9 +211,9 @@ export default function DocumentUpload() {
             const activeTypes = Object.entries(selectedTypes).filter(([, v]) => v).map(([k]) => k)
 
             if (mode === 'topic') {
-                generateQuestionsFromTopic(topic, questionCount, { types: activeTypes, difficulty: difficultyDist })
+                await generateQuestionsFromTopic(topic, questionCount, { types: activeTypes, difficulty: difficultyDist })
             } else {
-                generateQuestions(rawText, questionCount, { types: activeTypes, difficulty: difficultyDist })
+                await generateQuestions(rawText, questionCount, { types: activeTypes, difficulty: difficultyDist })
             }
 
             updatePipeline(4)

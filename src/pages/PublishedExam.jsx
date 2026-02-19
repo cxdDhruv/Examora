@@ -30,7 +30,9 @@ export default function PublishedExam() {
             try {
                 const { db } = await import('../config/firebase')
                 const { collection, query, where, onSnapshot } = await import('firebase/firestore')
-                const q = query(collection(db, "submissions"), where("examId", "==", Number(examId)))
+                const { doc } = await import('firebase/firestore')
+                // FIX: Listen to the SUBCOLLECTION 'submissions' inside the exam document
+                const q = query(collection(db, "exams", String(examId), "submissions"))
 
                 unsubscribe = onSnapshot(q, (snapshot) => {
                     const subs = []
@@ -259,26 +261,14 @@ export default function PublishedExam() {
         )
     }
 
-    // Generate Shareable Link (Compressed)
+    // Generate Shareable Link (Code-based for Real-time fetch)
     const joinUrl = useMemo(() => {
         if (!exam) return ''
         const baseUrl = window.location.origin + window.location.pathname
-        // Create a minimal payload
-        const payload = {
-            id: exam.id,
-            title: exam.title,
-            questions: exam.questions,
-            duration: exam.duration,
-            settings: exam.settings,
-            sheetUrl: googleSheetUrl // Embed current sheet URL for remote students
-        }
-        // Use LZString to compress (we need to add this library)
-        // For now, we'll try to strip unnecessary data if we can't add libraries easily
-        // But since we can't easily add libraries without npm install, let's try to minify the JSON
-        const json = JSON.stringify(payload)
-        const encoded = btoa(encodeURIComponent(json))
-        return `${baseUrl}#/join/${encoded}`
-    }, [exam, googleSheetUrl])
+        // FIX: Use simple code-based URL so students fetch fresh exam from DB
+        // This ensures they submit to the correct place for real-time results
+        return `${baseUrl}#/join/${exam.code}`
+    }, [exam])
 
     const copyLink = () => {
         navigator.clipboard.writeText(joinUrl)
@@ -320,7 +310,7 @@ export default function PublishedExam() {
                             Scan QR Code
                         </h3>
 
-                        {joinUrl.length > 2000 ? (
+                        {false ? (
                             <div style={{ padding: 20, background: '#fff3cd', color: '#856404', borderRadius: 8, marginBottom: 16 }}>
                                 <AlertTriangle size={24} style={{ marginBottom: 8 }} />
                                 <p style={{ fontSize: '0.9rem', margin: 0 }}>

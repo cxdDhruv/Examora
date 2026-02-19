@@ -78,6 +78,8 @@ export default function ExamBuilder() {
         }))
     }
 
+    const [isPublishing, setIsPublishing] = useState(false)
+
     const handlePublish = async () => {
         if (!settings.title.trim()) {
             alert('Please enter an exam title')
@@ -87,7 +89,10 @@ export default function ExamBuilder() {
             alert('Please add at least one question')
             return
         }
+
+        setIsPublishing(true)
         try {
+            // 1. Create the Exam
             const exam = await addExam({
                 title: settings.title,
                 duration: settings.duration,
@@ -95,10 +100,15 @@ export default function ExamBuilder() {
                 settings,
                 totalPoints,
             })
+
+            // 2. Mark as Published (Async operation)
             await publishExam(exam.id)
+
             navigate(`/teacher/published/${exam.id}`)
         } catch (e) {
-            alert("Failed to publish exam. Please try again.")
+            console.error("Publishing error:", e)
+            alert("Failed to publish exam. Please checks your connection and try again.")
+            setIsPublishing(false)
         }
     }
 
@@ -121,8 +131,8 @@ export default function ExamBuilder() {
                         <button className="btn btn-secondary" onClick={() => setShowSettings(!showSettings)}>
                             <Settings size={16} /> Settings
                         </button>
-                        <button className="btn btn-primary" onClick={handlePublish} disabled={questions.length === 0 || !settings.title.trim()}>
-                            <Send size={16} /> Publish & Get QR Code
+                        <button className="btn btn-primary" onClick={handlePublish} disabled={questions.length === 0 || !settings.title.trim() || isPublishing}>
+                            {isPublishing ? <><div className="spin" style={{ width: 16, height: 16, border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%' }}></div> Publishing...</> : <><Send size={16} /> Publish & Get QR Code</>}
                         </button>
                     </div>
                 </div>

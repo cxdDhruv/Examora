@@ -580,7 +580,7 @@ export default function TakeExam() {
                                             const logs = []
                                             const originalLog = console.log
                                             console.log = (...args) => logs.push(args.join(' '))
-                                            // eslint-disable-next-line no-new-func
+                                             
                                             new Function(answers[q.id] || '')()
                                             console.log = originalLog
                                             alert('Output:\n' + (logs.length ? logs.join('\n') : 'No output'))
