@@ -12,6 +12,7 @@ const firebaseConfig = {
     storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
     messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '455157814939',
     appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || '',
 }
 
 let app;
@@ -36,6 +37,13 @@ try {
 
     // Storage
     storage = getStorage(app)
+
+    // Analytics (Optional)
+    if (import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) {
+        const { getAnalytics } = await import('firebase/analytics')
+        // Check if supported (e.g. not in node/ssr)
+        getAnalytics(app)
+    }
 
 } catch (error) {
     console.error("Firebase Initialization Error:", error)
