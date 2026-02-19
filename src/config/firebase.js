@@ -1,10 +1,10 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
+import { getAnalytics } from 'firebase/analytics'
 
 // Firebase configuration from Google Cloud Console
-// Get these from: https://console.firebase.google.com → Project Settings
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
@@ -15,7 +15,6 @@ const firebaseConfig = {
     measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || '',
 }
 
-// Initialize Firebase
 let app;
 let auth;
 let googleProvider;
@@ -24,26 +23,32 @@ let storage;
 let analytics;
 
 try {
+    // Initialize Firebase
     app = initializeApp(firebaseConfig)
+
+    // Auth
     auth = getAuth(app)
     googleProvider = new GoogleAuthProvider()
 
-    // Force Long Polling for strict networks
-    const { initializeFirestore } = await import('firebase/firestore')
+    // Firestore - Static import, synchronous init
     db = initializeFirestore(app, {
         experimentalForceLongPolling: true,
     })
 
+    // Storage
     storage = getStorage(app)
 
-    // Analytics (safe init)
+    // Analytics
     if (firebaseConfig.measurementId) {
-        import('firebase/analytics').then(({ getAnalytics }) => {
+        try {
             analytics = getAnalytics(app)
-        }).catch(e => console.warn("Analytics failed to load", e))
+        } catch (err) {
+            console.warn("Analytics init failed:", err)
+        }
     }
-} catch (e) {
-    console.error("Firebase init failed:", e)
+
+} catch (error) {
+    console.error("Firebase Initialization Critical Failure:", error)
 }
 
 export { auth, googleProvider, db, storage, analytics }
