@@ -236,45 +236,44 @@ export function ExamProvider({ children }) {
     // 1. TEACHER: SUBSCRIBE TO EXAMS
     // ============================================================
     useEffect(() => {
-        if (!userEmail) {
+        if (!userEmail || !db) {
             setExams([])
             setLoadingExams(false)
             return
         }
 
         setLoadingExams(true)
-        const q = query(
-            collection(db, 'exams'),
-            where('createdBy', '==', userEmail),
-            orderBy('createdAt', 'desc')
-        )
+        try {
+            const q = query(
+                collection(db, 'exams'),
+                where('createdBy', '==', userEmail),
+                orderBy('createdAt', 'desc')
+            )
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const fetchedExams = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }))
-            // Also need to fetch submissions for each exam?
-            // For now, let's load logic only when needed or use a subcollection listener
-            // We'll attach a listener for each exam to get live submissions? 
-            // Better: When "PublishedExam" or "Dashboard" loads, it fetches submissions.
-            // But to show "Submission Count" in dashboard, we need it.
-            // Let's keep it simple: Real-time update of Exam Definition.
-            // Submissions we might need to fetch separately unless we store count on exam doc.
-            setExams(fetchedExams)
-            setLoadingExams(false)
-        }, (err) => {
-            console.error("Error fetching exams:", err)
-            setLoadingExams(false)
-        })
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                const fetchedExams = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }))
+                setExams(fetchedExams)
+                setLoadingExams(false)
+            }, (err) => {
+                console.error("Error fetching exams:", err)
+                setLoadingExams(false)
+            })
 
-        return () => unsubscribe()
+            return () => unsubscribe()
+        } catch (e) {
+            console.error("Firestore Error:", e)
+            setLoadingExams(false)
+        }
     }, [userEmail])
 
     // ============================================================
     // 2. EXAM MANAGEMENT
     // ============================================================
     const addExam = async (exam) => {
+        if (!db) { alert("Database offline"); return; }
         const newExam = {
             ...exam,
             code: generateExamCode(),
@@ -296,6 +295,7 @@ export function ExamProvider({ children }) {
     }
 
     const publishExam = async (examId) => {
+        if (!db) return;
         try {
             const examRef = doc(db, 'exams', String(examId))
             await updateDoc(examRef, { status: 'Published' })
@@ -314,6 +314,8 @@ export function ExamProvider({ children }) {
         const local = exams.find(e => e.code === code)
         if (local) return local
 
+        if (!db) return null;
+
         // If not found (student), query Firestore
         const q = query(collection(db, 'exams'), where('code', '==', code))
         const snapshot = await getDocs(q)
@@ -327,6 +329,7 @@ export function ExamProvider({ children }) {
 
     // Submit Exam - Writes to Sub-collection AND updates count
     const submitExamAnswers = async (examId, answers, studentInfo, violations) => {
+        if (!db) { console.error("DB Offline"); return; }
         try {
             const examRef = doc(db, 'exams', String(examId))
             const textScore = calculateScore(getExamById(examId)?.questions || [], answers)
@@ -456,6 +459,7 @@ export function ExamProvider({ children }) {
 
     // Helper to get submissions for an exam (real-time)
     const subscribeToSubmissions = (examId, callback) => {
+        if (!db) return () => { };
         const q = query(
             collection(db, 'exams', String(examId), 'submissions'),
             orderBy('submittedAt', 'desc')

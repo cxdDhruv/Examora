@@ -15,45 +15,36 @@ const firebaseConfig = {
     measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || '',
 }
 
+// Initialize Firebase
 let app;
 let auth;
 let googleProvider;
 let db;
 let storage;
+let analytics;
 
 try {
-    // Initialize Firebase
     app = initializeApp(firebaseConfig)
-
-    // Auth
     auth = getAuth(app)
     googleProvider = new GoogleAuthProvider()
 
-    // Firestore Database (Force Long Polling for strict networks)
+    // Force Long Polling for strict networks
     const { initializeFirestore } = await import('firebase/firestore')
     db = initializeFirestore(app, {
         experimentalForceLongPolling: true,
     })
 
-    // Storage
     storage = getStorage(app)
 
-    // Analytics (Optional)
-    if (import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) {
-        const { getAnalytics } = await import('firebase/analytics')
-        // Check if supported (e.g. not in node/ssr)
-        getAnalytics(app)
+    // Analytics (safe init)
+    if (firebaseConfig.measurementId) {
+        import('firebase/analytics').then(({ getAnalytics }) => {
+            analytics = getAnalytics(app)
+        }).catch(e => console.warn("Analytics failed to load", e))
     }
-
-} catch (error) {
-    console.error("Firebase Initialization Error:", error)
-    // Export nulls so imports don't fail, but usage will throw (caught by ErrorBoundary or handled)
-    app = null
-    auth = null
-    googleProvider = null
-    db = null
-    storage = null
+} catch (e) {
+    console.error("Firebase init failed:", e)
 }
 
-export { auth, googleProvider, db, storage }
+export { auth, googleProvider, db, storage, analytics }
 export default app
