@@ -14,20 +14,38 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
 }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig)
+let app;
+let auth;
+let googleProvider;
+let db;
+let storage;
 
-// Auth
-export const auth = getAuth(app)
-export const googleProvider = new GoogleAuthProvider()
+try {
+    // Initialize Firebase
+    app = initializeApp(firebaseConfig)
 
-// Firestore Database (Force Long Polling for strict networks)
-import { initializeFirestore } from 'firebase/firestore'
-export const db = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
-})
+    // Auth
+    auth = getAuth(app)
+    googleProvider = new GoogleAuthProvider()
 
-// Storage (for PDF uploads, webcam captures, etc.)
-export const storage = getStorage(app)
+    // Firestore Database (Force Long Polling for strict networks)
+    const { initializeFirestore } = await import('firebase/firestore')
+    db = initializeFirestore(app, {
+        experimentalForceLongPolling: true,
+    })
 
+    // Storage
+    storage = getStorage(app)
+
+} catch (error) {
+    console.error("Firebase Initialization Error:", error)
+    // Export nulls so imports don't fail, but usage will throw (caught by ErrorBoundary or handled)
+    app = null
+    auth = null
+    googleProvider = null
+    db = null
+    storage = null
+}
+
+export { auth, googleProvider, db, storage }
 export default app
